@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,63 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Activity {
+  id          Int        @id @default(autoincrement())
+  name        String
+  area        String
+  description String?
+  priceCents  Int        @default(0)
+  durationMin Int        @default(60)
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  resources   Resource[]
+  slots       Slot[]
+}
+
+model Resource {
+  id         Int      @id @default(autoincrement())
+  activityId Int
+  name       String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+}
+
+model Slot {
+  id         Int       @id @default(autoincrement())
+  activityId Int
+  startsAt   DateTime
+  endsAt     DateTime
+  capacity   Int
+  booked     Int       @default(0)
+  createdAt  DateTime  @default(now())
+  activity   Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  bookings   Booking[]
+
+  @@unique([activityId, startsAt])
+  @@index([startsAt])
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  slotId          Int
+  quantity        Int
+  customerName    String
+  customerContact String
+  status          BookingStatus @default(CONFIRMED)
+  createdAt       DateTime      @default(now())
+  slot            Slot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  @@index([slotId])
 }
