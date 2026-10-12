@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertAreaAccess } from '../auth/area.util';
+import type { TokenUser } from '../auth/area.util';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface CreateActivityInput {
@@ -60,8 +62,13 @@ export class ActivitiesService {
     return activity;
   }
 
-  async addResources(activityId: number, input: CreateResourcesInput) {
-    await this.requireActivity(activityId);
+  async addResources(
+    activityId: number,
+    input: CreateResourcesInput,
+    user: TokenUser,
+  ) {
+    const activity = await this.requireActivity(activityId);
+    assertAreaAccess(user, activity.area);
     const count = input.count ?? 1;
     if (!input.name?.trim()) {
       throw new BadRequestException('name es obligatorio');
@@ -81,17 +88,22 @@ export class ActivitiesService {
     });
   }
 
-  async removeResource(id: number) {
-    const resource = await this.prisma.resource.findUnique({ where: { id } });
+  async removeResource(id: number, user: TokenUser) {
+    const resource = await this.prisma.resource.findUnique({
+      where: { id },
+      include: { activity: true },
+    });
     if (!resource) throw new NotFoundException('Recurso no existe');
+    assertAreaAccess(user, resource.activity.area);
     return this.prisma.resource.update({
       where: { id },
       data: { active: false },
     });
   }
 
-  async createSlot(activityId: number, input: CreateSlotInput) {
+  async createSlot(activityId: number, input: CreateSlotInput, user: TokenUser) {
     const activity = await this.requireActivity(activityId);
+    assertAreaAccess(user, activity.area);
 
     const startsAt = new Date(input.startsAt);
     if (Number.isNaN(startsAt.getTime())) {
@@ -134,9 +146,13 @@ export class ActivitiesService {
     });
   }
 
-  async removeSlot(id: number) {
-    const slot = await this.prisma.slot.findUnique({ where: { id } });
+  async removeSlot(id: number, user: TokenUser) {
+    const slot = await this.prisma.slot.findUnique({
+      where: { id },
+      include: { activity: true },
+    });
     if (!slot) throw new NotFoundException('Horario no existe');
+    assertAreaAccess(user, slot.activity.area);
     if (slot.booked > 0) {
       throw new ConflictException('Horario tiene reservas, no se puede quitar');
     }
