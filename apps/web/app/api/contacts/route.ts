@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_CMS_DATA, ContactLead } from '@/data/defaultCmsData';
+import { DEFAULT_CMS_DATA, ContactLead } from '@/data/defaultCmsData'; 
+import { requireAdmin } from '@/lib/requireAuth';
 
 const CONTACTS_FILE = path.join(process.cwd(), 'data', 'contacts_store.json');
 
@@ -27,7 +28,7 @@ function writeContacts(contacts: ContactLead[]): boolean {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) { const auth = await requireAdmin(req); if ('error' in auth) return auth.error;
   const contacts = readContacts();
   return NextResponse.json(contacts);
 }
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: NextRequest) { const auth = await requireAdmin(req); if ('error' in auth) return auth.error;
   try {
     const { id, status } = await req.json();
     const contacts = readContacts();
@@ -82,7 +83,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(req: NextRequest) { const auth = await requireAdmin(req); if ('error' in auth) return auth.error;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

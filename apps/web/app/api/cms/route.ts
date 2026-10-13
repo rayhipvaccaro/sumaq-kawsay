@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_CMS_DATA, CMSData } from '@/data/defaultCmsData';
+import { DEFAULT_CMS_DATA, CMSData } from '@/data/defaultCmsData'; 
+import { requireAdmin } from '@/lib/requireAuth';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'cms_store.json');
 
@@ -33,7 +34,7 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest) { const auth = await requireAdmin(req); if ('error' in auth) return auth.error;
   try {
     const updatedData = (await req.json()) as Partial<CMSData>;
     const currentData = readCmsData();
