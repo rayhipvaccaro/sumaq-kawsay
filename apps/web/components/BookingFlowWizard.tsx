@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
+import { AvailabilityCalendar } from './AvailabilityCalendar';
 import {
   X,
   Bed,
@@ -618,15 +619,15 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
 
                   {/* Date & Guest controls */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
-                    <div>
+                    <div className="sm:col-span-3">
                       <label className="text-xs font-bold text-stone-700 block mb-1">
                         {isEs ? 'Fecha de Llegada' : 'Arrival Date'}
+                        <span className="ml-2 font-mono font-normal text-stone-500">{travelDate}</span>
                       </label>
-                      <input
-                        type="date"
+                      <AvailabilityCalendar
                         value={travelDate}
-                        onChange={(e) => setTravelDate(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-xl text-sm bg-stone-50 text-stone-900 border-stone-300 focus:ring-2 focus:ring-[#F6A935]"
+                        onChange={setTravelDate}
+                        lang={lang}
                       />
                     </div>
                     <div>
