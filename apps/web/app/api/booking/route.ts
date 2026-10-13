@@ -47,7 +47,9 @@ export async function POST(req: NextRequest) {
     }
     let slots: Slot[];
     try {
-      const r = await fetch(`${API_URL}/activities/${activityId}/slots`, { cache: 'no-store' });
+      const r = await fetch(`${API_URL}/activities/${activityId}/slots`, {
+        cache: 'no-store',
+      });
       if (!r.ok) throw new Error(String(r.status));
       slots = await r.json();
     } catch (e) {
@@ -59,43 +61,50 @@ export async function POST(req: NextRequest) {
       (s) => limaDay(s.startsAt) === date && s.capacity - s.booked >= quantity,
     );
     if (!slot) {
-      return bad(`Sin cupo para "${label}" el ${date}. Elige otra fecha o menos personas.`, 409);
+      return bad(
+        `Sin cupo para "${label}" el ${date}. Elige otra fecha o menos personas.`,
+        409,
+      );
     }
     plan.push({ name: label, slotId: slot.id, quantity });
   }
 
-  // 2) Reservar
-  const done: { activity: string; bookingId: number }[] = [];
-  for (const p of plan) {
-    try {
-      const r = await fetch(`${API_URL}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slotId: p.slotId,
-          quantity: p.quantity,
-          customerName,
-          customerContact,
-        }),
-        cache: 'no-store',
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message: `No se pudo reservar "${p.name}": ${data?.message ?? r.status}`,
-            done,
-          },
-          { status: r.status === 409 ? 409 : 502 },
-        );
-      }
-      done.push({ activity: p.name, bookingId: data.id });
-    } catch (e) {
-      console.error('BOOKING: fallo al reservar en Nest:', e);
-      return bad('Servidor de reservas no disponible', 502);
-    }
+  // 2) Reservar todo junto: o entra todo, o no entra nada
+  if (plan.length === 0) {
+    return NextResponse.json({ ok: true, bookings: [] });
   }
-
-  return NextResponse.json({ ok: true, bookings: done });
+  try {
+    const r = await fetch(`${API_URL}/bookings/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName,
+        customerContact,
+        items: plan.map((p) => ({ slotId: p.slotId, quantity: p.quantity })),
+      }),
+      cache: 'no-store',
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const full = r.status === 409;
+      return NextResponse.json(
+        {
+          ok: false,
+          message: full
+            ? 'Se acabaron los cupos mientras reservabas. No se reservo nada. Elige otra fecha.'
+            : `No se pudo reservar: ${data?.message ?? r.status}`,
+          done: [],
+        },
+        { status: full ? 409 : 502 },
+      );
+    }
+    const nameBySlot = new Map(plan.map((p) => [p.slotId, p.name]));
+    const done = (data.bookings as { id: number; slotId: number }[]).map(
+      (b) => ({ activity: nameBySlot.get(b.slotId) ?? '', bookingId: b.id }),
+    );
+    return NextResponse.json({ ok: true, bookings: done });
+  } catch (e) {
+    console.error('BOOKING: fallo al reservar en Nest:', e);
+    return bad('Servidor de reservas no disponible', 502);
+  }
 }

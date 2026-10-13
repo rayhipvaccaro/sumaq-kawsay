@@ -13,6 +13,12 @@ export interface ReserveInput {
   customerContact: string;
 }
 
+export interface ReserveBatchInput {
+  customerName: string;
+  customerContact: string;
+  items: { slotId: number; quantity: number }[];
+}
+
 export interface BookingRow {
   id: number;
   slotId: number;
@@ -68,5 +74,68 @@ export class BookingsService {
     }
 
     return rows[0];
+  }
+
+  async reserveBatch(input: ReserveBatchInput) {
+    const customerName = input.customerName?.trim();
+    const customerContact = input.customerContact?.trim();
+    if (!customerName || !customerContact) {
+      throw new BadRequestException('nombre y contacto son obligatorios');
+    }
+    if (
+      !Array.isArray(input.items) ||
+      input.items.length === 0 ||
+      input.items.length > 10
+    ) {
+      throw new BadRequestException('items debe tener de 1 a 10 elementos');
+    }
+
+    const merged = new Map<number, number>();
+    for (const it of input.items) {
+      if (!Number.isInteger(it?.slotId) || it.slotId <= 0) {
+        throw new BadRequestException('slotId invalido');
+      }
+      if (!Number.isInteger(it?.quantity) || it.quantity <= 0) {
+        throw new BadRequestException('quantity debe ser entero mayor a 0');
+      }
+      merged.set(it.slotId, (merged.get(it.slotId) ?? 0) + it.quantity);
+    }
+    // Orden fijo por id: evita bloqueos cruzados entre reservas simultaneas
+    const ordered = [...merged.entries()].sort((a, b) => a[0] - b[0]);
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const out: BookingRow[] = [];
+        for (const [slotId, quantity] of ordered) {
+          const taken = await tx.$queryRaw<{ id: number }[]>`
+            UPDATE "Slot"
+            SET "booked" = "booked" + ${quantity}::int
+            WHERE "id" = ${slotId}::int
+              AND "booked" + ${quantity}::int <= "capacity"
+            RETURNING "id"
+          `;
+          if (taken.length === 0) {
+            const slot = await tx.slot.findUnique({
+              where: { id: slotId },
+              select: { id: true },
+            });
+            if (!slot) {
+              throw new NotFoundException(`Horario ${slotId} no existe`);
+            }
+            throw new ConflictException(
+              `No hay cupos suficientes en el horario ${slotId}`,
+            );
+          }
+          const rows = await tx.$queryRaw<BookingRow[]>`
+            INSERT INTO "Booking" ("slotId", "quantity", "customerName", "customerContact")
+            VALUES (${slotId}::int, ${quantity}::int, ${customerName}::text, ${customerContact}::text)
+            RETURNING *
+          `;
+          out.push(rows[0]);
+        }
+        return { bookings: out };
+      },
+      { maxWait: 10_000, timeout: 20_000 },
+    );
   }
 }
