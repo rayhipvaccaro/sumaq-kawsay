@@ -89,20 +89,23 @@ export function BookingFlowWizard({
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Aplica lo elegido en el buscador del home al abrir el asistente
-  useEffect(() => {
-    if (!isOpen || !bookingPreset) return;
+  const [appliedPreset, setAppliedPreset] = useState<typeof bookingPreset>(null);
+  if (isOpen && bookingPreset && bookingPreset !== appliedPreset) {
+    setAppliedPreset(bookingPreset);
     if (bookingPreset.date) setTravelDate(bookingPreset.date);
     if (bookingPreset.guests) setGuestsCount(bookingPreset.guests);
-    const id = bookingPreset.experienceId;
-    if (id?.startsWith('hosp-')) {
-      setSelectedStayId(id);
-    } else if (id?.startsWith('act-')) {
+    const presetId = bookingPreset.experienceId;
+    if (presetId?.startsWith('hosp-')) {
+      setSelectedStayId(presetId);
+    } else if (presetId?.startsWith('act-')) {
       setSelectedActivities((prev) => ({
         ...prev,
-        [id]: bookingPreset.guests ?? prev[id] ?? 2,
+        [presetId]: bookingPreset.guests ?? prev[presetId] ?? 2,
       }));
     }
-  }, [isOpen, bookingPreset]);
+  } else if (!isOpen && appliedPreset) {
+    setAppliedPreset(null);
+  }
 
   // Stock categories
   const stayStock = useMemo(
@@ -330,6 +333,8 @@ export function BookingFlowWizard({
 
     setIsSubmitting(true);
     try {
+      const nest = await fetch('/api/booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: travelDate, customerName, customerContact: `${customerEmail} | ${customerPhone}`, items: calculation.actSelections.map((a) => ({ id: a.itemId, name: a.name, quantity: a.quantity })) }) }).then((r) => r.json()).catch(() => ({ ok: false, message: isEs ? 'Sin conexion con el servidor de reservas.' : 'Cannot reach the booking server.' }));
+      if (!nest.ok) { alert(nest.message); return; }
       const reservationId = await createReservation({
         customerName,
         customerEmail,
