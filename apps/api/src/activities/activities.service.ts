@@ -202,7 +202,60 @@ export class ActivitiesService {
       orderBy: { startsAt: 'asc' },
     });
   }
+    async availability(activityId: number, from: string, to: string) {
+    const re = /^\d{4}-\d{2}-\d{2}$/;
+    if (!re.test(from) || !re.test(to)) {
+      throw new BadRequestException('from y to deben ser YYYY-MM-DD');
+    }
+    const start = new Date(`${from}T00:00:00-05:00`);
+    const end = new Date(`${to}T23:59:59.999-05:00`);
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      end < start
+    ) {
+      throw new BadRequestException('rango de fechas invalido');
+    }
+    if (end.getTime() - start.getTime() > 92 * 86_400_000) {
+      throw new BadRequestException('maximo 92 dias por consulta');
+    }
+    await this.requireActivity(activityId);
 
+    const now = new Date();
+    const slots = await this.prisma.slot.findMany({
+      where: {
+        activityId,
+        startsAt: { gte: start > now ? start : now, lte: end },
+      },
+      orderBy: { startsAt: 'asc' },
+      select: { startsAt: true, capacity: true, booked: true },
+    });
+
+    const byDay = new Map<
+      string,
+      { date: string; slots: number; capacity: number; free: number }
+    >();
+    for (const s of slots) {
+      const date = s.startsAt.toLocaleDateString('en-CA', {
+        timeZone: 'America/Lima',
+      });
+      const d = byDay.get(date) ?? { date, slots: 0, capacity: 0, free: 0 };
+      d.slots += 1;
+      d.capacity += s.capacity;
+      d.free += Math.max(0, s.capacity - s.booked);
+      byDay.set(date, d);
+    }
+
+    return {
+      activityId,
+      from,
+      to,
+      days: [...byDay.values()].map((d) => ({
+        ...d,
+        status: d.free > 0 ? 'open' : 'full',
+      })),
+    };
+  }
   async removeSlot(id: number, user: TokenUser) {
     const slot = await this.prisma.slot.findUnique({
       where: { id },

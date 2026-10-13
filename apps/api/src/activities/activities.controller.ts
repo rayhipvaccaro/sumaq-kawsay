@@ -84,7 +84,14 @@ export class ActivitiesController {
   ) {
     return this.activities.createSlot(id, body, req.user);
   }
-
+    @Get('activities/:id/availability')
+  availability(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.activities.availability(id, from, to);
+  }
   @Get('activities/:id/slots')
   listSlots(@Param('id', ParseIntPipe) id: number) {
     return this.activities.listSlots(id);
