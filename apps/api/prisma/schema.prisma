@@ -100,7 +100,7 @@ model User {
   @@index([areaId])
 }
 
-model AuditLog {model AuditLog {
+model AuditLog {
   id        Int      @id @default(autoincrement())
   userId    Int?
   action    String
