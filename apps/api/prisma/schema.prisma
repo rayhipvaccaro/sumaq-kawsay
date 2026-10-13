@@ -16,7 +16,8 @@ enum BookingStatus {
 model Activity {
   id          Int        @id @default(autoincrement())
   name        String
-  area        String
+  areaId      Int
+  area        Area       @relation(fields: [areaId], references: [id], onDelete: Restrict)
   description String?
   priceCents  Int        @default(0)
   durationMin Int        @default(60)
@@ -25,6 +26,8 @@ model Activity {
   updatedAt   DateTime   @updatedAt
   resources   Resource[]
   slots       Slot[]
+
+  @@index([areaId])
 }
 
 model Resource {
@@ -80,7 +83,9 @@ model User {
   passwordHash       String
   fullName           String
   roleId             Int
-  area               String?
+  areaId             Int?
+  area               Area?      @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  tokenVersion       Int        @default(0)
   active             Boolean    @default(true)
   mustChangePassword Boolean    @default(true)
   failedAttempts     Int        @default(0)
@@ -92,9 +97,10 @@ model User {
   audits             AuditLog[]
 
   @@index([roleId])
+  @@index([areaId])
 }
 
-model AuditLog {
+model AuditLog {model AuditLog {
   id        Int      @id @default(autoincrement())
   userId    Int?
   action    String
@@ -105,4 +111,13 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model Area {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  slug       String     @unique
+  createdAt  DateTime   @default(now())
+  activities Activity[]
+  users      User[]
 }

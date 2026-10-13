@@ -5,13 +5,14 @@ export interface TokenUser {
   username: string;
   role: string;
   isAdmin: boolean;
+  areaId: number | null;
   area: string | null;
   mustChange: boolean;
 }
 
-export function assertAreaAccess(user: TokenUser, area: string): void {
+export function assertAreaAccess(user: TokenUser, areaId: number): void {
   if (user.isAdmin) return;
-  if (!user.area || user.area.trim().toLowerCase() !== area.trim().toLowerCase()) {
+  if (user.areaId === null || user.areaId !== areaId) {
     throw new ForbiddenException('Esta actividad no es de tu area');
   }
 }

@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -36,7 +37,25 @@ export class ActivitiesController {
   listActivities() {
     return this.activities.listActivities();
   }
+    @Get('me/activities')
+  @UseGuards(JwtAuthGuard)
+  myActivities(@Req() req: AuthedReq) {
+    return this.activities.listMine(req.user);
+  }
 
+  @Get('me/bookings')
+  @UseGuards(JwtAuthGuard)
+  myBookings(
+    @Req() req: AuthedReq,
+    @Query('activityId') activityId?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.activities.listMyBookings(
+      req.user,
+      activityId ? Number(activityId) : undefined,
+      limit ? Number(limit) : undefined,
+    );
+  }
   @Post('activities/:id/resources')
   @UseGuards(JwtAuthGuard)
   addResources(

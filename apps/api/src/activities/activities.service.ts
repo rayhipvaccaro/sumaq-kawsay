@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface CreateActivityInput {
   name: string;
-  area: string;
+  areaId: number;
   description?: string;
   priceCents?: number;
   durationMin?: number;
@@ -32,13 +32,20 @@ export class ActivitiesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createActivity(input: CreateActivityInput) {
-    if (!input.name?.trim() || !input.area?.trim()) {
-      throw new BadRequestException('name y area son obligatorios');
+        if (!input.name?.trim()) {
+      throw new BadRequestException('name es obligatorio');
     }
+    if (!Number.isInteger(input.areaId) || input.areaId <= 0) {
+      throw new BadRequestException('areaId es obligatorio (elige una area de la lista)');
+    }
+    const area = await this.prisma.area.findUnique({
+      where: { id: input.areaId },
+    });
+    if (!area) throw new NotFoundException('Area no existe');
     return this.prisma.activity.create({
       data: {
         name: input.name.trim(),
-        area: input.area.trim(),
+        areaId: area.id,
         description: input.description?.trim() || null,
         priceCents: input.priceCents ?? 0,
         durationMin: input.durationMin ?? 60,
@@ -51,7 +58,57 @@ export class ActivitiesService {
       where: { active: true },
       orderBy: { id: 'asc' },
       include: {
+        area: { select: { id: true, name: true } },
         _count: { select: { resources: { where: { active: true } } } },
+      },
+    });
+  }
+  
+  async listMine(user: TokenUser) {
+    if (!user.isAdmin && user.areaId === null) return [];
+    return this.prisma.activity.findMany({
+      where: {
+        active: true,
+        ...(user.isAdmin ? {} : { areaId: user.areaId as number }),
+      },
+      orderBy: { id: 'asc' },
+      include: {
+        area: { select: { id: true, name: true } },
+        resources: {
+          where: { active: true },
+          orderBy: { id: 'asc' },
+          select: { id: true, name: true },
+        },
+        slots: {
+          where: { startsAt: { gte: new Date() } },
+          orderBy: { startsAt: 'asc' },
+          take: 50,
+        },
+      },
+    });
+  }
+
+  async listMyBookings(user: TokenUser, activityId?: number, limit = 100) {
+    if (!user.isAdmin && user.areaId === null) return [];
+    const take = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 500) : 100;
+    return this.prisma.booking.findMany({
+      where: {
+        slot: {
+          ...(activityId ? { activityId } : {}),
+          activity: user.isAdmin ? {} : { areaId: user.areaId as number },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        slot: {
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            activity: { select: { id: true, name: true } },
+          },
+        },
       },
     });
   }
@@ -68,7 +125,7 @@ export class ActivitiesService {
     user: TokenUser,
   ) {
     const activity = await this.requireActivity(activityId);
-    assertAreaAccess(user, activity.area);
+    assertAreaAccess(user, activity.areaId);
     const count = input.count ?? 1;
     if (!input.name?.trim()) {
       throw new BadRequestException('name es obligatorio');
@@ -94,7 +151,7 @@ export class ActivitiesService {
       include: { activity: true },
     });
     if (!resource) throw new NotFoundException('Recurso no existe');
-    assertAreaAccess(user, resource.activity.area);
+    assertAreaAccess(user, resource.activity.areaId);
     return this.prisma.resource.update({
       where: { id },
       data: { active: false },
@@ -103,7 +160,7 @@ export class ActivitiesService {
 
   async createSlot(activityId: number, input: CreateSlotInput, user: TokenUser) {
     const activity = await this.requireActivity(activityId);
-    assertAreaAccess(user, activity.area);
+    assertAreaAccess(user, activity.areaId);
 
     const startsAt = new Date(input.startsAt);
     if (Number.isNaN(startsAt.getTime())) {
@@ -152,7 +209,7 @@ export class ActivitiesService {
       include: { activity: true },
     });
     if (!slot) throw new NotFoundException('Horario no existe');
-    assertAreaAccess(user, slot.activity.area);
+    assertAreaAccess(user, slot.activity.areaId);
     if (slot.booked > 0) {
       throw new ConflictException('Horario tiene reservas, no se puede quitar');
     }

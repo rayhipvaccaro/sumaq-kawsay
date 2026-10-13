@@ -44,7 +44,9 @@ export class AuthService {
     id: number;
     username: string;
     fullName: string;
-    area: string | null;
+    areaId: number | null;
+    tokenVersion: number;
+    area: { name: string } | null;
     mustChangePassword: boolean;
     role: { name: string; isAdmin: boolean };
   }): LoginResult {
@@ -54,15 +56,13 @@ export class AuthService {
       fullName: user.fullName,
       role: user.role.name,
       isAdmin: user.role.isAdmin,
-      area: user.area,
+      area: user.area?.name ?? null,
     };
     const accessToken = this.jwt.sign({
       sub: user.id,
       username: user.username,
       role: user.role.name,
-      isAdmin: user.role.isAdmin,
-      area: user.area,
-      mustChange: user.mustChangePassword,
+      tv: user.tokenVersion,
     });
     return {
       accessToken,
@@ -83,7 +83,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { username },
-      include: { role: true },
+      include: { role: true, area: true },
     });
 
     if (!user || !user.active) {
@@ -139,7 +139,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { role: true },
+      include: { role: true, area: true },
     });
     if (!user || !user.active) {
       throw new UnauthorizedException('Sesion invalida');
@@ -155,8 +155,9 @@ export class AuthService {
       data: {
         passwordHash: await bcrypt.hash(next, 12),
         mustChangePassword: false,
+        tokenVersion: { increment: 1 },
       },
-      include: { role: true },
+      include: { role: true, area: true },
     });
     await this.audit(user.id, 'PASSWORD_CHANGED', ip);
     return this.sign(updated);

@@ -1,17 +1,21 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { ALLOW_MUST_CHANGE } from './allow-must-change.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -22,7 +26,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Falta sesion');
     }
 
-    let payload: { sub: number };
+    let payload: { sub: number; tv?: number };
     try {
       payload = this.jwt.verify(token);
     } catch {
@@ -31,10 +35,23 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { role: true },
+      include: { role: true, area: true },
     });
     if (!user || !user.active) {
       throw new UnauthorizedException('Sesion invalida');
+    }
+    if (payload.tv !== user.tokenVersion) {
+      throw new UnauthorizedException('Sesion invalida');
+    }
+
+    if (user.mustChangePassword) {
+      const allowed = this.reflector.getAllAndOverride<boolean>(
+        ALLOW_MUST_CHANGE,
+        [ctx.getHandler(), ctx.getClass()],
+      );
+      if (!allowed) {
+        throw new ForbiddenException('Debes cambiar tu contrasena primero');
+      }
     }
 
     req.user = {
@@ -42,7 +59,8 @@ export class JwtAuthGuard implements CanActivate {
       username: user.username,
       role: user.role.name,
       isAdmin: user.role.isAdmin,
-      area: user.area,
+      areaId: user.areaId,
+      area: user.area?.name ?? null,
       mustChange: user.mustChangePassword,
     };
     return true;

@@ -20,7 +20,7 @@ const publicSelect = {
   id: true,
   username: true,
   fullName: true,
-  area: true,
+  area: { select: { id: true, name: true } },
   active: true,
   mustChangePassword: true,
   lockedUntil: true,
@@ -33,7 +33,7 @@ export interface CreateUserInput {
   username: string;
   fullName: string;
   roleId: number;
-  area?: string;
+  areaId?: number;
 }
 
 export interface CreateRoleInput {
@@ -61,7 +61,7 @@ export class UsersService {
   async createUser(input: CreateUserInput, actorId: number, ip?: string) {
     const username = (input.username ?? '').trim().toLowerCase();
     const fullName = (input.fullName ?? '').trim();
-    const area = input.area?.trim() || null;
+    const areaId = input.areaId ?? null;
 
     if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
       throw new BadRequestException(
@@ -77,8 +77,15 @@ export class UsersService {
       where: { id: input.roleId },
     });
     if (!role) throw new NotFoundException('Rol no existe');
-    if (!role.isAdmin && !area) {
-      throw new BadRequestException('area es obligatoria para este rol');
+        if (!role.isAdmin && areaId === null) {
+      throw new BadRequestException('areaId es obligatorio para este rol');
+    }
+    if (areaId !== null) {
+      if (!Number.isInteger(areaId) || areaId <= 0) {
+        throw new BadRequestException('areaId invalido');
+      }
+      const area = await this.prisma.area.findUnique({ where: { id: areaId } });
+      if (!area) throw new NotFoundException('Area no existe');
     }
 
     const temp = tempPassword();
@@ -87,7 +94,7 @@ export class UsersService {
         data: {
           username,
           fullName,
-          area,
+          areaId: role.isAdmin ? null : areaId,
           roleId: role.id,
           passwordHash: await bcrypt.hash(temp, 12),
           mustChangePassword: true,
@@ -115,6 +122,7 @@ export class UsersService {
         mustChangePassword: true,
         failedAttempts: 0,
         lockedUntil: null,
+        tokenVersion: { increment: 1 },
       },
     });
     await this.audit(actorId, 'PASSWORD_RESET', ip, `usuario: ${target.username}`);
@@ -132,7 +140,7 @@ export class UsersService {
     if (!target) throw new NotFoundException('Usuario no existe');
     const user = await this.prisma.user.update({
       where: { id },
-      data: { active },
+      data: { active, tokenVersion: { increment: 1 } },
       select: publicSelect,
     });
     await this.audit(

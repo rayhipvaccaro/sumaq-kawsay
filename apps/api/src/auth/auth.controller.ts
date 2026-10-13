@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { AllowMustChange } from './allow-must-change.decorator';
 import type { TokenUser } from './area.util';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -35,6 +36,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowMustChange()
   @UseGuards(JwtAuthGuard)
   me(@Req() req: AuthedReq) {
     const u = req.user;
@@ -44,12 +46,14 @@ export class AuthController {
       role: u.role,
       isAdmin: u.isAdmin,
       area: u.area,
+      areaId: u.areaId,
       mustChangePassword: u.mustChange,
     };
   }
 
   @Post('change-password')
   @HttpCode(200)
+  @AllowMustChange()
   @UseGuards(JwtAuthGuard)
   changePassword(@Body() body: ChangePasswordBody, @Req() req: AuthedReq) {
     return this.auth.changePassword(
