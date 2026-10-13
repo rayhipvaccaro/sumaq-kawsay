@@ -53,9 +53,7 @@ interface CMSContextType {
   isAdminAuthenticated: boolean;
   openAdminModal: () => void;
   closeAdminModal: () => void;
-  authenticateAdmin: (pin: string) => boolean;
   logoutAdmin: () => void;
-  changeAdminPin: (newPin: string) => boolean;
 
   // Business Portal Modal (for Roles: Ventas, Contador, Admin, etc.)
   isBusinessPortalOpen: boolean;
@@ -134,9 +132,6 @@ interface CMSContextType {
 const CMSContext = createContext<CMSContextType | null>(null);
 
 const STORAGE_KEY = 'sumaq_kawsay_cms_v2';
-const AUTH_KEY = 'sumaq_admin_auth_v1';
-const PIN_KEY = 'sumaq_admin_pin_v1';
-const DEFAULT_PIN = 'sumaq2026';
 const CURRENT_ROLE_KEY = 'sumaq_current_role_v1';
 
 export function CMSProvider({ children }: { children: ReactNode }) {
@@ -164,16 +159,23 @@ export function CMSProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return localStorage.getItem(AUTH_KEY) === 'true';
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  // La sesion de admin viene de la cookie real (Nest), no de un PIN local.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((u) => {
+        if (!cancelled) setIsAdminAuthenticated(Boolean(u?.isAdmin) && !u?.mustChangePassword);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdminAuthenticated(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Role Switcher State (Defaults to 'usuario' on initial visit, can switch anytime)
   const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
@@ -264,44 +266,14 @@ export function CMSProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const authenticateAdmin = (pin: string): boolean => {
-    let expectedPin = DEFAULT_PIN;
+  const logoutAdmin = async () => {
     try {
-      const stored = localStorage.getItem(PIN_KEY);
-      if (stored) expectedPin = stored;
-    } catch {
-      // fallback
-    }
-
-    if (pin.trim() === expectedPin) {
-      setIsAdminAuthenticated(true);
-      try {
-        localStorage.setItem(AUTH_KEY, 'true');
-      } catch {
-        // ignore
-      }
-      return true;
-    }
-    return false;
-  };
-
-  const changeAdminPin = (newPin: string): boolean => {
-    if (!newPin || newPin.trim().length < 4) return false;
-    try {
-      localStorage.setItem(PIN_KEY, newPin.trim());
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const logoutAdmin = () => {
-    setIsAdminAuthenticated(false);
-    try {
-      localStorage.removeItem(AUTH_KEY);
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
       // ignore
     }
+    setIsAdminAuthenticated(false);
+    window.location.href = '/login';
   };
 
   const openAdminModal = () => setIsAdminModalOpen(true);
@@ -754,9 +726,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         isAdminAuthenticated,
         openAdminModal,
         closeAdminModal,
-        authenticateAdmin,
         logoutAdmin,
-        changeAdminPin,
 
         // Portals & Flow
         isBusinessPortalOpen,

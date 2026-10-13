@@ -2,13 +2,54 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Lock, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Lock, ArrowLeft, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 type Mode = 'login' | 'change' | 'noadmin';
+
+const INPUT_CLASS =
+  'w-full px-4 py-3 rounded-xl border-2 border-stone-700 bg-[#221E1B] text-white focus:outline-none focus:border-[#D4AF37] placeholder-stone-500';
+const BUTTON_CLASS =
+  'w-full py-3 rounded-xl bg-[#D4AF37] hover:bg-[#B38F24] text-[#181513] font-bold disabled:opacity-60 transition-all';
 
 function safeNext(): string {
   const n = new URLSearchParams(window.location.search).get('next') || '/admin';
   return n.startsWith('/') && !n.startsWith('//') ? n : '/admin';
+}
+
+function PasswordField({
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  autoComplete: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        className={`${INPUT_CLASS} pr-12`}
+        type={show ? 'text' : 'password'}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? 'Ocultar clave' : 'Mostrar clave'}
+        title={show ? 'Ocultar clave' : 'Mostrar clave'}
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-[#D4AF37] transition-colors"
+      >
+        {show ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+      </button>
+    </div>
+  );
 }
 
 export default function LoginPage() {
@@ -95,15 +136,13 @@ export default function LoginPage() {
     setPassword('');
   };
 
-  const input =
-    'w-full px-4 py-3 rounded-xl border-2 border-stone-700 bg-[#221E1B] text-white focus:outline-none focus:border-[#D4AF37] placeholder-stone-500';
-  const button =
-    'w-full py-3 rounded-xl bg-[#D4AF37] hover:bg-[#B38F24] text-[#181513] font-bold disabled:opacity-60 transition-all';
-
   return (
     <div className="min-h-screen bg-[#181513] text-stone-100 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-[#D4AF37] hover:text-[#F3E5AB]">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-bold text-[#D4AF37] hover:text-[#F3E5AB]"
+        >
           <ArrowLeft className="w-4 h-4" />
           <span>Volver al sitio</span>
         </Link>
@@ -118,28 +157,61 @@ export default function LoginPage() {
           <p className="text-sm text-stone-300">
             {mode === 'login' && 'Entra con tu usuario y clave.'}
             {mode === 'change' && 'Tu clave es temporal. Debes cambiarla para continuar.'}
-            {mode === 'noadmin' && 'Tu cuenta no es de administrador. Tu panel de encargado se habilita pronto.'}
+            {mode === 'noadmin' &&
+              'Tu cuenta no es de administrador. Tu panel de encargado se habilita pronto.'}
           </p>
         </div>
 
         {mode === 'login' && (
           <form onSubmit={onLogin} className="space-y-4">
-            <input className={input} placeholder="Usuario" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-            <input className={input} type="password" placeholder="Clave" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button className={button} disabled={busy}>{busy ? 'Entrando...' : 'Entrar'}</button>
+            <input
+              className={INPUT_CLASS}
+              placeholder="Usuario"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+            <PasswordField
+              value={password}
+              onChange={setPassword}
+              placeholder="Clave"
+              autoComplete="current-password"
+            />
+            <button className={BUTTON_CLASS} disabled={busy}>
+              {busy ? 'Entrando...' : 'Entrar'}
+            </button>
+            <p className="text-xs text-stone-400 text-center leading-relaxed">
+              ¿Olvidaste tu clave? Pide a un administrador que la restablezca. Te dará una clave temporal y
+              la cambiarás al entrar.
+            </p>
           </form>
         )}
 
         {mode === 'change' && (
           <form onSubmit={onChange} className="space-y-4">
-            <input className={input} type="password" placeholder="Clave nueva (minimo 10)" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-            <input className={input} type="password" placeholder="Repite la clave nueva" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-            <button className={button} disabled={busy}>{busy ? 'Guardando...' : 'Guardar y entrar'}</button>
+            <PasswordField
+              value={newPassword}
+              onChange={setNewPassword}
+              placeholder="Clave nueva (minimo 10)"
+              autoComplete="new-password"
+            />
+            <PasswordField
+              value={confirm}
+              onChange={setConfirm}
+              placeholder="Repite la clave nueva"
+              autoComplete="new-password"
+            />
+            <button className={BUTTON_CLASS} disabled={busy}>
+              {busy ? 'Guardando...' : 'Guardar y entrar'}
+            </button>
           </form>
         )}
 
         {mode === 'noadmin' && (
-          <button onClick={logout} className={button}>Cerrar sesion</button>
+          <button onClick={logout} className={BUTTON_CLASS}>
+            Cerrar sesion
+          </button>
         )}
 
         {error && (

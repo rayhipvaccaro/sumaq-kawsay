@@ -287,7 +287,7 @@ export default function HomePage() {
         lang={lang}
       />
 
-      {/* Visual Dynamic Admin CMS Modal (PIN: sumaq2026) */}
+      {/* Visual Dynamic Admin CMS Modal */}
       <AdminCMSModal />
 
       {/* Enterprise Multi-Role Business Portal (Ventas & Marketing, Contador, Admin, Usuario) */}
