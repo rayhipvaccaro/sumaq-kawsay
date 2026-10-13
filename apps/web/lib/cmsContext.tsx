@@ -26,6 +26,14 @@ import {
   INITIAL_ACCOUNTING_ENTRIES,
 } from '@/data/businessData';
 
+export interface BookingPreset {
+  /** id del hospedaje o actividad elegida en el buscador del home */
+  experienceId?: string;
+  /** fecha de llegada en formato YYYY-MM-DD */
+  date?: string;
+  guests?: number;
+}
+
 interface CMSContextType {
   tours: Tour[];
   generalContent: GeneralContent;
@@ -56,7 +64,8 @@ interface CMSContextType {
 
   // Booking Flow Wizard Modal (Flujo Integral Paso a Paso)
   isBookingWizardOpen: boolean;
-  openBookingWizard: () => void;
+  bookingPreset: BookingPreset | null;
+  openBookingWizard: (preset?: BookingPreset) => void;
   closeBookingWizard: () => void;
 
   // Order Tracker Modal (Rastreo de Reserva para el Usuario)
@@ -193,6 +202,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   // Business Modals
   const [isBusinessPortalOpen, setIsBusinessPortalOpen] = useState<boolean>(false);
   const [isBookingWizardOpen, setIsBookingWizardOpen] = useState<boolean>(false);
+  const [bookingPreset, setBookingPreset] = useState<BookingPreset | null>(null);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState<boolean>(false);
   const [activeTrackingId, setActiveTrackingId] = useState<string | null>(null);
 
@@ -307,7 +317,10 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   const closeBusinessPortal = () => setIsBusinessPortalOpen(false);
 
   // Booking Flow Wizard
-  const openBookingWizard = () => setIsBookingWizardOpen(true);
+  const openBookingWizard = (preset?: BookingPreset) => {
+    setBookingPreset(preset ?? null);
+    setIsBookingWizardOpen(true);
+  };
   const closeBookingWizard = () => setIsBookingWizardOpen(false);
 
   // Order Tracker
@@ -750,6 +763,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         openBusinessPortal,
         closeBusinessPortal,
         isBookingWizardOpen,
+        bookingPreset,
         openBookingWizard,
         closeBookingWizard,
         isOrderTrackerOpen,

@@ -101,38 +101,8 @@ export function QuickActionDock({ lang, onOpenSystemGuide }: QuickActionDockProp
                 <span>{isEs ? 'Rastrear Reserva' : 'Track Booking'}</span>
               </button>
 
-              <button
-                onClick={() => {
-                  setIsMobileExpanded(false);
-                  openBusinessPortal('ventas');
-                }}
-                className="flex items-center gap-2 p-3 rounded-xl bg-[#221E1B] border border-stone-700 text-stone-200 text-xs sm:text-sm font-semibold hover:border-blue-400"
-              >
-                <Briefcase className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>{isEs ? 'Portal Roles' : 'Roles Portal'}</span>
-              </button>
 
-              <button
-                onClick={() => {
-                  setIsMobileExpanded(false);
-                  onOpenSystemGuide();
-                }}
-                className="flex items-center gap-2 p-3 rounded-xl bg-[#221E1B] border border-stone-700 text-stone-200 text-xs sm:text-sm font-semibold hover:border-emerald-400"
-              >
-                <HelpCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{isEs ? '¿Cómo Funciona?' : 'How it Works'}</span>
-              </button>
 
-              <button
-                onClick={() => {
-                  setIsMobileExpanded(false);
-                  openManualModal('usuario');
-                }}
-                className="flex items-center gap-2 p-3 rounded-xl bg-[#221E1B] border border-stone-700 text-stone-200 text-xs sm:text-sm font-semibold hover:border-amber-400"
-              >
-                <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>{isEs ? 'Manuales' : 'Manuals'}</span>
-              </button>
             </div>
           </div>
         </div>
@@ -156,7 +126,7 @@ export function QuickActionDock({ lang, onOpenSystemGuide }: QuickActionDockProp
           <div className="flex items-center gap-2 flex-1 justify-between sm:justify-center">
             {/* Primary Booking Wizard CTA */}
             <button
-              onClick={openBookingWizard}
+              onClick={() => openBookingWizard()}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-full bg-[#F6A935] hover:bg-[#9E2021] hover:text-white active:bg-[#7D1718] text-[#442A19] font-bold text-xs sm:text-sm shadow-md transition-all whitespace-nowrap min-h-[44px]"
             >
               <Calendar className="w-4 h-4 text-[#181513] shrink-0" />
@@ -165,41 +135,9 @@ export function QuickActionDock({ lang, onOpenSystemGuide }: QuickActionDockProp
 
             {/* Desktop Quick Actions */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <button
-                onClick={() => openOrderTracker()}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#221E1B] hover:bg-[#2C2623] border border-stone-700 hover:border-[#F6A935]/60 text-stone-200 hover:text-white text-xs font-semibold transition-all whitespace-nowrap min-h-[40px]"
-                title={isEs ? 'Rastrear reserva con código SQ-XXXX' : 'Track booking with SQ-XXXX code'}
-              >
-                <Clock className="w-3.5 h-3.5 text-[#F6A935]" />
-                <span>{isEs ? 'Rastrear' : 'Track'}</span>
-              </button>
 
-              <button
-                onClick={() => openBusinessPortal('ventas')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#221E1B] hover:bg-[#2C2623] border border-stone-700 hover:border-blue-400/60 text-stone-200 hover:text-white text-xs font-semibold transition-all whitespace-nowrap min-h-[40px]"
-                title={isEs ? 'Portal de Gestión: Ventas, Contador, Admin' : 'Business Roles Portal'}
-              >
-                <Briefcase className="w-3.5 h-3.5 text-blue-400" />
-                <span>{isEs ? 'Portal Roles' : 'Roles'}</span>
-              </button>
 
-              <button
-                onClick={onOpenSystemGuide}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#221E1B] hover:bg-[#2C2623] border border-stone-700 hover:border-emerald-500/60 text-stone-200 hover:text-white text-xs font-semibold transition-all whitespace-nowrap min-h-[40px]"
-                title={isEs ? 'Guía Rápida: ¿Cómo funciona la página?' : 'Quick Guide: How it works'}
-              >
-                <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{isEs ? '¿Cómo funciona?' : 'Guide'}</span>
-              </button>
 
-              <button
-                onClick={() => openManualModal('usuario')}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#221E1B] hover:bg-[#2C2623] border border-stone-700 hover:border-amber-400/60 text-stone-200 hover:text-white text-xs font-semibold transition-all whitespace-nowrap min-h-[40px]"
-                title={isEs ? 'Manual de Usuario y Sistema' : 'User and System Manuals'}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                <span>{isEs ? 'Manuales' : 'Manuals'}</span>
-              </button>
             </div>
 
             {/* Mobile "Más Opciones" button */}

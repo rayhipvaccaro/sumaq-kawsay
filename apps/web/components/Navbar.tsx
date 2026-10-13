@@ -105,7 +105,7 @@ export function Navbar({
             {/* Zone 2: Navigation Links (Refined, guaranteed non-colliding typography) */}
             <nav
               aria-label={isEs ? 'Navegación principal' : 'Main navigation'}
-              className="hidden 2xl:flex items-center gap-6 text-sm font-semibold text-stone-100 shrink-0 flex-nowrap"
+              className="hidden xl:flex items-center gap-5 text-sm font-semibold text-stone-100 shrink-0 flex-nowrap"
             >
               <a
                 href="#experiencias"
@@ -121,19 +121,19 @@ export function Navbar({
               </a>
               <a
                 href="#zonas-ancestrales"
-                className="hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
+                className="hidden 2xl:inline hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
               >
                 {isEs ? 'Zonas Sagradas' : 'Sacred Zones'}
               </a>
               <a
                 href="#herbario"
-                className="hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
+                className="hidden 2xl:inline hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
               >
                 {t.nav.etnobotany}
               </a>
               <a
                 href="#cotizador"
-                className="hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
+                className="hidden 2xl:inline hover:text-[#F6A935] transition-colors relative py-1 hover:underline underline-offset-8 decoration-[#F6A935] decoration-2 whitespace-nowrap"
               >
                 {t.nav.planner}
               </a>
@@ -147,16 +147,6 @@ export function Navbar({
 
             {/* Zone 3: Portal Negocio + Rastrear + Reserva Integral + Moneda/Idioma */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-nowrap">
-              {/* Business Portal (Roles: Ventas, Contador, Admin) */}
-              <button
-                onClick={() => openBusinessPortal('ventas')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold rounded-xl border border-[#F6A935] bg-[#181513] hover:bg-[#F6A935] text-[#F6A935] hover:text-[#181513] transition-all shadow-md group shrink-0"
-                title="Portal de Gestión: Roles de Ventas & Marketing, Contador, Administrador y Proveedores"
-              >
-                <Briefcase className="w-3.5 h-3.5 text-[#F6A935] group-hover:text-[#181513] transition-colors shrink-0" />
-                <span className="font-heading font-extrabold tracking-wide hidden xl:inline">Portal Roles</span>
-                <span className="font-heading font-extrabold tracking-wide xl:hidden">Roles</span>
-              </button>
 
               {/* Rastrear Reserva */}
               <button
@@ -168,27 +158,7 @@ export function Navbar({
                 <span className="hidden xl:inline">Rastrear</span>
               </button>
 
-              {/* Manuales Web y Sistema */}
-              <button
-                onClick={() => openManualModal('usuario')}
-                className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold rounded-xl border border-stone-700 bg-[#221E1B] text-stone-300 hover:text-white hover:border-stone-500 transition-colors shrink-0"
-                title="Manual de Uso de la Web y Manual de Sistema"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#F6A935]" />
-                <span className="hidden xl:inline">Manuales</span>
-              </button>
 
-              {/* ¿Cómo Funciona? Guía Rápida */}
-              {onOpenSystemGuide && (
-                <button
-                  onClick={onOpenSystemGuide}
-                  className="hidden 2xl:flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold rounded-xl border border-stone-700 bg-[#221E1B] text-stone-300 hover:text-white hover:border-emerald-500 transition-colors shrink-0"
-                  title="¿Cómo funciona la web? Guía rápida interactiva"
-                >
-                  <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>¿Cómo Funciona?</span>
-                </button>
-              )}
 
               {/* Currency selector */}
               <button
@@ -214,7 +184,7 @@ export function Navbar({
 
               {/* Primary Booking CTA: Flujo de Reserva Integral (Hospedaje -> Actividades -> Comida) */}
               <button
-                onClick={openBookingWizard}
+                onClick={() => openBookingWizard()}
                 aria-label={isEs ? 'Iniciar flujo de reserva integral paso a paso' : 'Start all-in-one booking wizard'}
                 className="hidden md:inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold text-[#181513] bg-[#F6A935] hover:bg-[#D48B1E] active:bg-[#99771A] rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 whitespace-nowrap border border-[#FDE8B5]/40 shrink-0 min-h-[40px]"
               >

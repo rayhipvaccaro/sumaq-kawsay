@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   X,
@@ -39,7 +39,7 @@ export function BookingFlowWizard({
   lang = 'es',
   currency = 'PEN',
 }: BookingFlowWizardProps) {
-  const { stockItems, createReservation, openOrderTracker } = useCMS();
+  const { stockItems, createReservation, openOrderTracker, bookingPreset } = useCMS();
   const isEs = lang === 'es';
 
   // Step state (1: Hospedaje, 2: Actividades, 3: Alimentación, 4: Extras, 5: Resumen & Confirmación)
@@ -87,6 +87,22 @@ export function BookingFlowWizard({
   const [createdReservationId, setCreatedReservationId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Aplica lo elegido en el buscador del home al abrir el asistente
+  useEffect(() => {
+    if (!isOpen || !bookingPreset) return;
+    if (bookingPreset.date) setTravelDate(bookingPreset.date);
+    if (bookingPreset.guests) setGuestsCount(bookingPreset.guests);
+    const id = bookingPreset.experienceId;
+    if (id?.startsWith('hosp-')) {
+      setSelectedStayId(id);
+    } else if (id?.startsWith('act-')) {
+      setSelectedActivities((prev) => ({
+        ...prev,
+        [id]: bookingPreset.guests ?? prev[id] ?? 2,
+      }));
+    }
+  }, [isOpen, bookingPreset]);
 
   // Stock categories
   const stayStock = useMemo(

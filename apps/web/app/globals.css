@@ -25,6 +25,7 @@
   }
 
   html {
+    overflow-x: clip;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -43,13 +44,15 @@
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading, .font-brand {
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
     color: var(--color-dark);
-    letter-spacing: 0.015em;
+    letter-spacing: 0;
+    text-wrap: balance;
   }
 
   .font-display {
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
   }
 
   .font-editorial {
@@ -93,4 +96,25 @@ html.text-lg-mode {
 html.text-lg-mode body {
   font-size: 19px;
   line-height: 1.8;
+}
+
+
+/* Accesibilidad base: foco visible en todo control, sin molestar al clic */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #9E2021;
+  outline-offset: 2px;
+}
+button, a, select, input[type='checkbox'], input[type='radio'] {
+  touch-action: manipulation;
+}
+
+/* Respeta a quien pidió menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -9,3 +9,4 @@ coverage/
 apps/web/data/cms_store.json
 apps/web/data/contacts_store.json
 *.tsbuildinfo
+*.zip

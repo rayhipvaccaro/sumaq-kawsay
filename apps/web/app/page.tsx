@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
-import { ChacanaDivider } from '@/components/ChacanaDivider';
 import { PhilosophySection } from '@/components/PhilosophySection';
 import { AncestralZones } from '@/components/AncestralZones';
 import { EcotourismComplex } from '@/components/EcotourismComplex';
@@ -12,8 +11,6 @@ import { TripPlanner, CustomQuoteSummary } from '@/components/TripPlanner';
 import { EthnobotanyLab } from '@/components/EthnobotanyLab';
 import { SeasonalityGuide } from '@/components/SeasonalityGuide';
 import { RouteAccess } from '@/components/RouteAccess';
-import { QRAudioGuides } from '@/components/QRAudioGuides';
-import { SpaceExplorer } from '@/components/SpaceExplorer';
 import { TestimonialsSection } from '@/components/TestimonialsSection';
 import { ContactSection } from '@/components/ContactSection';
 import { AdminCMSModal } from '@/components/AdminCMSModal';
@@ -204,30 +201,14 @@ export default function HomePage() {
           onOpenSystemGuide={() => setIsSystemGuideOpen(true)}
         />
 
-        {/* Andean Stepped Cross Decorative Greca */}
-        <ChacanaDivider className="bg-[#FDFBF7] py-5 border-b border-[#D4AF37]/30" repeat={14} />
-
-        {/* 2. Philosophy & Andean Values (Sumaq Kawsay - "Buen Vivir") */}
-        <PhilosophySection lang={lang} />
-
-        {/* 2.5 Business Journey Flow: Flujo de Reserva Integral (Hospedaje -> Actividades -> Comida -> Cierre) */}
-        <UserFlowSection lang={lang} currency={currency} />
-
-        {/* 3. The 3 Sacred Ancestral Zones of Inka Lab (Hanan Pacha, Willka Unu, Inti Punku) */}
-        <AncestralZones
-          lang={lang}
-          currency={currency}
-          onBookZone={handleBookAncestralZone}
-        />
-
-        {/* 4. Inka Lab Ecotourism Sanctuary & Hospitality (Bungalows, Novoandino Dining, Inca Sauna, Day Pass) */}
+        {/* 2. Dormir: bungalows, glamping, suite y pasadia */}
         <EcotourismComplex
           lang={lang}
           currency={currency}
           onBookService={handleBookEcotourismService}
         />
 
-        {/* 5. Curated Tour Catalog & Expeditions */}
+        {/* 3. Hacer: catalogo de experiencias con filtros */}
         <TourCatalog
           lang={lang}
           currency={currency}
@@ -235,14 +216,25 @@ export default function HomePage() {
           onQuickBook={handleBookTour}
         />
 
-        {/* 6. InkaLab Interactive Trip Planner & Real-Time Price Estimator */}
+        {/* 4. Como reservar: flujo real de 5 pasos */}
+        <UserFlowSection lang={lang} currency={currency} />
+
+        {/* 5. Las tres zonas ancestrales de Inka Lab */}
+        <AncestralZones
+          lang={lang}
+          currency={currency}
+          onBookZone={handleBookAncestralZone}
+        />
+
+        {/* 6. Planificador con precio estimado */}
         <TripPlanner
           lang={lang}
           currency={currency}
           onBookCustom={handleBookCustomSummary}
         />
 
-        {/* 7. Living Ethnobotany & Ancestral Medicine Lab (Sumaq Kawsay Chillca) */}
+        {/* 7. Filosofia y etnobotanica (contexto cultural) */}
+        <PhilosophySection lang={lang} />
         <EthnobotanyLab
           lang={lang}
           onBookEthnobotany={() => {
@@ -253,22 +245,12 @@ export default function HomePage() {
           }}
         />
 
-        {/* 8. Seasonality & Climate Guide (Temporadas Seca, Media y Lluvias) */}
+        {/* 8. Cuando ir y como llegar */}
         <SeasonalityGuide lang={lang} />
-
-        {/* 9. Strategic Access: How to Reach Km 84 & Ollantaytambo */}
         <RouteAccess lang={lang} />
 
-        {/* 10. QR Tourism & Ancestral Audio Guides */}
-        <QRAudioGuides lang={lang} />
-
-        {/* 11. Spatial 360 Explorer & Sacred Geography */}
-        <SpaceExplorer lang={lang} />
-
-        {/* 12. Social Proof & Verified Testimonials */}
+        {/* 9. Opiniones y contacto */}
         <TestimonialsSection lang={lang} />
-
-        {/* 13. Formulario de Contacto & Asesoría en Cusco */}
         <ContactSection lang={lang} />
       </main>
 

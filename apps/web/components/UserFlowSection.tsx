@@ -206,7 +206,7 @@ export function UserFlowSection({ lang, currency }: UserFlowSectionProps) {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <button
-              onClick={openBookingWizard}
+              onClick={() => openBookingWizard()}
               className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-xl sm:rounded-2xl bg-[#F6A935] hover:bg-[#9E2021] hover:text-white active:bg-[#7D1718] text-[#442A19] font-bold text-base shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Calendar className="w-5 h-5" />
