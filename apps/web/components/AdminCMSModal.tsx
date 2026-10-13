@@ -59,9 +59,7 @@ export function AdminCMSModal() {
     isAdminModalOpen,
     isAdminAuthenticated,
     closeAdminModal,
-    authenticateAdmin,
     logoutAdmin,
-    changeAdminPin,
     importFullBackup,
     addTour,
     updateTour,
@@ -162,26 +160,6 @@ export function AdminCMSModal() {
     e.target.value = '';
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (lockoutSeconds > 0) return;
-
-    const success = authenticateAdmin(pinInput);
-    if (!success) {
-      const nextFailures = failedAttempts + 1;
-      setFailedAttempts(nextFailures);
-      setLoginError(true);
-      if (nextFailures >= 4) {
-        setLockoutSeconds(30);
-        showNotification('Bloqueo de seguridad: Demasiados intentos fallidos. Espera 30 segundos.');
-      }
-    } else {
-      setLoginError(false);
-      setFailedAttempts(0);
-      setPinInput('');
-      showNotification('Sesión de administrador iniciada correctamente.');
-    }
-  };
 
   // CSV Export for Leads
   const handleExportCSV = () => {
@@ -249,26 +227,6 @@ export function AdminCMSModal() {
     e.target.value = '';
   };
 
-  // Update PIN
-  const handleUpdatePin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPinInput.length < 4) {
-      alert('La nueva clave debe tener al menos 4 caracteres.');
-      return;
-    }
-    if (newPinInput !== confirmPinInput) {
-      alert('Las claves no coinciden.');
-      return;
-    }
-    const success = changeAdminPin(newPinInput);
-    if (success) {
-      setNewPinInput('');
-      setConfirmPinInput('');
-      showNotification('Clave de administrador actualizada correctamente.');
-    } else {
-      alert('No se pudo guardar la clave.');
-    }
-  };
 
   // Open edit tour
   const handleOpenEditTour = (tour: Tour) => {
@@ -468,48 +426,20 @@ export function AdminCMSModal() {
             <div className="w-16 h-16 rounded-2xl bg-[#221E1B] border-2 border-[#F6A935] flex items-center justify-center text-[#F6A935] shadow-xl">
               <Lock className="w-8 h-8" />
             </div>
-
             <div>
               <h3 className="font-heading text-2xl sm:text-3xl font-extrabold text-white">
                 Acceso al Panel de Control
               </h3>
               <p className="text-sm sm:text-base text-stone-300 mt-2 leading-relaxed">
-                Ingresa la clave de administración para gestionar tours, precios en tiempo real, textos y la bandeja de contactos.
+                Inicia sesión con tu usuario para gestionar el sitio.
               </p>
             </div>
-
-            <form onSubmit={handleLogin} className="w-full space-y-4">
-              <div>
-                <input
-                  type="password"
-                  required
-                  value={pinInput}
-                  onChange={(e) => {
-                    setPinInput(e.target.value);
-                    setLoginError(false);
-                  }}
-                  placeholder="Clave de Administrador (ej. sumaq2026)"
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-stone-700 bg-[#221E1B] text-white text-center font-mono text-lg focus:outline-hidden focus:border-[#F6A935] placeholder-stone-500 font-bold"
-                />
-                {loginError && (
-                  <p className="text-red-400 text-xs sm:text-sm mt-2 flex items-center justify-center gap-1 font-semibold">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Clave incorrecta. La clave por defecto es: <strong>sumaq2026</strong></span>
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 px-6 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-bold text-base shadow-xl transition-all border border-[#FDE8B5]"
-              >
-                Ingresar al Panel CMS
-              </button>
-            </form>
-
-            <div className="p-3 rounded-lg bg-[#221E1B] border border-stone-800 text-xs text-stone-400">
-              Clave de demostración: <strong className="text-[#FDE8B5] font-mono">sumaq2026</strong>
-            </div>
+            <a
+              href="/login?next=/admin"
+              className="w-full py-3.5 px-6 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-bold text-base shadow-xl transition-all border border-[#FDE8B5]"
+            >
+              Iniciar sesión
+            </a>
           </div>
         ) : (
           /* Authenticated Dashboard */
@@ -1195,55 +1125,6 @@ export function AdminCMSModal() {
                   <p className="text-sm text-stone-400 mt-1">
                     Herramientas profesionales para auditoría técnica, resguardo de datos y puesta en marcha en hosting comercial.
                   </p>
-                </div>
-
-                {/* Module 1: Change Admin PIN */}
-                <div className="p-6 rounded-2xl bg-[#221E1B] border border-stone-800 space-y-4">
-                  <h4 className="font-heading text-base font-bold text-[#F6A935] uppercase tracking-wider flex items-center gap-2">
-                    <Key className="w-4 h-4" />
-                    <span>1. Seguridad y Clave de Administrador</span>
-                  </h4>
-                  <p className="text-xs text-stone-400">
-                    Cambia la contraseña maestra de acceso al panel para proteger tu plataforma.
-                  </p>
-
-                  <form onSubmit={handleUpdatePin} className="max-w-md space-y-3 pt-2">
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-stone-300 mb-1">
-                        Nueva Clave de Administrador
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={newPinInput}
-                        onChange={(e) => setNewPinInput(e.target.value)}
-                        placeholder="Mínimo 4 caracteres"
-                        className="w-full px-4 py-2.5 rounded-xl border border-stone-700 bg-[#181513] text-white text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-stone-300 mb-1">
-                        Confirmar Nueva Clave
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={confirmPinInput}
-                        onChange={(e) => setConfirmPinInput(e.target.value)}
-                        placeholder="Repite la clave"
-                        className="w-full px-4 py-2.5 rounded-xl border border-stone-700 bg-[#181513] text-white text-sm"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-bold text-xs shadow-md transition-all"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Actualizar Clave Maestra</span>
-                    </button>
-                  </form>
                 </div>
 
                 {/* Module 2: Backups and Migration to Hosting */}
