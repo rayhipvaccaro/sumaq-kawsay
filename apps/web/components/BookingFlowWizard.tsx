@@ -271,6 +271,47 @@ export function BookingFlowWizard({
     extrasStock,
   ]);
 
+  // Cupos reales de la fecha elegida (desde Nest)
+  const [dayData, setDayData] = useState<
+    { date: string; map: Record<string, number | null> } | 'error' | null
+  >(null);
+
+  useEffect(() => {
+    if (!isOpen || !/^\d{4}-\d{2}-\d{2}$/.test(travelDate)) return;
+    let cancelled = false;
+    fetch(`/api/availability?from=${travelDate}&to=${travelDate}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => {
+        if (cancelled) return;
+        const map: Record<string, number | null> = {};
+        for (const [id, days] of Object.entries(
+          d.activities as Record<string, { date: string; free: number }[]>,
+        )) {
+          const day = days.find((x) => x.date === travelDate);
+          map[id] = day ? day.free : null; // null = sin horario ese dia
+        }
+        setDayData({ date: travelDate, map });
+      })
+      .catch(() => {
+        if (!cancelled) setDayData('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, travelDate]);
+
+  const dayCupos: Record<string, number | null> | 'error' | null =
+    dayData === 'error' ? 'error' : dayData && dayData.date === travelDate ? dayData.map : null;
+  const dateOk =
+    dayCupos === null || dayCupos === 'error'
+      ? true
+      : Object.values(dayCupos).some((v) => (v ?? 0) > 0);
+  const actProblems = Object.entries(selectedActivities).filter(([id, qty]) => {
+    if (dayCupos === null || dayCupos === 'error' || !(id in dayCupos)) return false;
+    return (dayCupos[id] ?? 0) < qty;
+  });
+  const blocked = (step === 1 && !dateOk) || (step === 2 && actProblems.length > 0);
+
   if (!isOpen) return null;
 
   // Toggle helpers
@@ -629,6 +670,13 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                         onChange={setTravelDate}
                         lang={lang}
                       />
+                      {!dateOk && (
+                        <p className="mt-2 text-xs font-semibold text-[#9E2021]">
+                          {isEs
+                            ? 'Elige un día en verde para continuar.'
+                            : 'Pick a green day to continue.'}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-stone-700 block mb-1">
@@ -817,8 +865,15 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     {activitiesStock.map((act) => {
                       const count = selectedActivities[act.id] || 0;
                       const isSelected = count > 0;
-                      const available = act.capacityMax - act.booked;
+                      const linked =
+                        dayCupos !== null && dayCupos !== 'error' && act.id in dayCupos;
+                      const realFree = linked
+                        ? (dayCupos as Record<string, number | null>)[act.id]
+                        : undefined;
+                      const available = linked ? (realFree ?? 0) : act.capacityMax - act.booked;
                       const isSoldOut = available <= 0;
+                      const noSchedule = linked && realFree === null;
+                      const overLimit = isSelected && linked && count > available;
 
                       return (
                         <div
@@ -851,13 +906,20 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                                     : 'bg-emerald-100 text-emerald-800'
                                 }`}
                               >
-                                {isSoldOut ? 'Agotado' : `${available} cupos`}
+                                {noSchedule ? 'Sin horario' : isSoldOut ? 'Agotado' : `${available} cupos`}
                               </span>
                             </div>
 
                             <p className="text-xs text-stone-600 mt-2 line-clamp-2">
                               {act.description}
                             </p>
+                            {overLimit && (
+                              <p className="mt-2 text-xs font-bold text-[#9E2021]">
+                                {isEs
+                                  ? `Solo quedan ${available} cupos ese día. Baja las personas o cambia la fecha.`
+                                  : `Only ${available} spots left that day. Lower the guests or change the date.`}
+                              </p>
+                            )}
                           </div>
 
                           <div className="pt-4 border-t border-stone-100 mt-3 flex items-center justify-between">
@@ -889,7 +951,8 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                                 <button
                                   type="button"
                                   onClick={() => updateActivityCount(act.id, 1)}
-                                  className="w-7 h-7 rounded-md border border-stone-300 bg-stone-50 text-stone-700 font-bold"
+                                  disabled={linked && count >= available}
+                                  className="w-7 h-7 rounded-md border border-stone-300 bg-stone-50 text-stone-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   +
                                 </button>
@@ -1333,7 +1396,8 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                 <button
                   type="button"
                   onClick={() => setStep((s) => (s + 1) as any)}
-                  className="px-6 py-2.5 rounded-xl bg-[#F6A935] hover:bg-[#9E2021] text-[#442A19] hover:text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-md transition-all"
+                  disabled={blocked}
+                  className="px-6 py-2.5 rounded-xl bg-[#F6A935] hover:bg-[#9E2021] text-[#442A19] hover:text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#F6A935] disabled:hover:text-[#442A19]"
                 >
                   <span>{isEs ? 'Siguiente Paso' : 'Next Step'}</span>
                   <ChevronRight className="w-4 h-4" />
