@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ username: body.username, password: body.password }),
       cache: 'no-store',
     });
-  } catch {
+  } catch (e) {
+    console.error('LOGIN: fallo al llamar a Nest:', e);
     return NextResponse.json({ error: 'Servidor no disponible' }, { status: 502 });
   }
 
