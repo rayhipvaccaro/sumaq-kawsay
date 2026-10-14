@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { API_URL, SESSION_COOKIE } from '@/lib/session';
+import { adminPathAllowed } from '@/lib/permissions';
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
@@ -13,7 +14,7 @@ export async function middleware(req: NextRequest) {
       });
       if (r.ok) {
         const u = await r.json();
-        ok = Boolean(u.isAdmin) && !u.mustChangePassword;
+        ok = adminPathAllowed(req.nextUrl.pathname, u);
       }
     } catch {
       ok = false;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readCms } from '@/lib/orderStore';
 import { getSession } from '@/lib/serverAuth';
+import { hasAny } from '@/lib/permissions';
 import { publicOrder, tokenOk } from '@/lib/orderPublic';
 
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
   let allowed = Boolean(order) && tokenOk(order!, token);
   if (order && !allowed) {
     const user = await getSession(req);
-    allowed = Boolean(user?.isAdmin) && !user?.mustChangePassword;
+    allowed = hasAny(user, ['orders.view', 'payments.manage']);
   }
   if (!order || !allowed) {
     return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

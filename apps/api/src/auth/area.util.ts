@@ -8,6 +8,7 @@ export interface TokenUser {
   areaId: number | null;
   area: string | null;
   mustChange: boolean;
+  permissions: string[];
 }
 
 export function assertAreaAccess(user: TokenUser, areaId: number): void {

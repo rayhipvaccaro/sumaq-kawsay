@@ -1,93 +1,41 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCMS } from '@/lib/cmsContext';
-import { AdminCMSModal } from '@/components/AdminCMSModal';
-import { BusinessPortalModal } from '@/components/BusinessPortalModal';
-import { ManualModal } from '@/components/ManualModal';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Briefcase, Calculator, BookOpen } from 'lucide-react';
+import { Package, FileText, MessageSquareQuote, Inbox, CalendarCheck, Wallet, Boxes, MapPin, Users, ShieldCheck } from 'lucide-react';
+import { useCMS } from '@/lib/cmsContext';
+import { PageHeader } from '@/components/admin/PageHeader';
 
-export default function AdminPage() {
-  const {
-    openAdminModal,
-    openBusinessPortal,
-    isBusinessPortalOpen,
-    closeBusinessPortal,
-    openManualModal,
-    isManualModalOpen,
-    closeManualModal,
-    manualActiveTab,
-  } = useCMS();
-  const router = useRouter();
+export default function AdminHome() {
+  const { sessionUser, can } = useCMS();
+  const admin = Boolean(sessionUser?.isAdmin);
+  const ic = 'w-6 h-6 text-[#B7791F]';
+  const tiles = [
+    { href: '/admin/cms/tours', t: 'Paquetes y experiencias', d: 'Crea y edita lo que vendes: precios, fotos y descripción.', i: <Package className={ic} />, s: can('cms.edit') },
+    { href: '/admin/cms/content', t: 'Textos y fotos del sitio', d: 'Cambia los textos de la página principal.', i: <FileText className={ic} />, s: can('cms.edit') },
+    { href: '/admin/cms/testimonials', t: 'Testimonios', d: 'Opiniones de turistas que se muestran en el sitio.', i: <MessageSquareQuote className={ic} />, s: can('cms.edit') },
+    { href: '/admin/reservas', t: 'Reservas y cotizaciones', d: 'Clientes que reservaron o pidieron precio. Concreta o declina ventas.', i: <CalendarCheck className={ic} />, s: can('orders.view') || can('payments.manage') },
+    { href: '/admin/cms/contacts', t: 'Contactos y consultas', d: 'Mensajes de visitantes del sitio.', i: <Inbox className={ic} />, s: can('leads.view') },
+    { href: '/admin/finanzas', t: 'Pagos y contabilidad', d: 'Ingresos, comprobantes, IGV y deudas con proveedores.', i: <Wallet className={ic} />, s: can('payments.manage') },
+    { href: '/admin/mi-area', t: 'Mi área', d: 'Agrega horarios y mira las reservas de tu servicio.', i: <MapPin className={ic} />, s: can('area.manage') },
+    { href: '/admin/operacion', t: 'Stock y proveedores', d: 'Inventario por área y proveedores.', i: <Boxes className={ic} />, s: admin },
+    { href: '/admin/usuarios', t: 'Usuarios y permisos', d: 'Crea cuentas, reinicia claves y define qué puede hacer cada rol.', i: <Users className={ic} />, s: admin },
+    { href: '/admin/cms/settings', t: 'Seguridad y respaldos', d: 'Respaldo y restauración de datos.', i: <ShieldCheck className={ic} />, s: admin },
+  ].filter((x) => x.s);
 
   return (
-    <div className="min-h-screen bg-[#181513] text-stone-100 flex flex-col justify-between p-6">
-      <div className="max-w-4xl mx-auto w-full pt-8">
-        <div className="flex items-center justify-between pb-6 border-b border-stone-800">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#D4AF37] hover:text-[#F3E5AB] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a la Página Principal (Sumaq Kawsay)</span>
+    <>
+      <PageHeader
+        title={`Hola, ${sessionUser?.fullName || sessionUser?.username}`}
+        help={`Entraste como ${sessionUser?.role}. Estas son las secciones que puedes usar.`}
+      />
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {tiles.map((x) => (
+          <Link key={x.href} href={x.href} className="bg-white border border-stone-300 hover:border-[#F6A935] hover:shadow-md rounded-xl p-5 transition-all">
+            <div className="flex items-center gap-3 mb-2">{x.i}<h2 className="font-bold text-stone-900">{x.t}</h2></div>
+            <p className="text-sm text-stone-600">{x.d}</p>
           </Link>
-
-          <span className="text-xs uppercase font-mono tracking-wider text-stone-400">
-            Sumaq Kawsay ERP & CMS v3.0 · Operador Oficial
-          </span>
-        </div>
-
-        <div className="text-center py-16 space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#221E1B] border-2 border-[#D4AF37] mx-auto flex items-center justify-center text-[#D4AF37] shadow-xl">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h1 className="font-heading text-3xl font-extrabold text-white">
-            Panel de Operaciones & Sistema de Roles
-          </h1>
-          <p className="text-stone-300 max-w-lg mx-auto text-sm leading-relaxed">
-            Gestión interconectada del negocio: Ventas & Marketing, Contador & Facturación, Control de Stock por Área, Proveedores y Contenido Web.
-          </p>
-
-          <div className="pt-6 flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => openBusinessPortal('ventas')}
-              className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xl transition-all flex items-center gap-2"
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>Portal de Roles (Ventas, Contador, Admin)</span>
-            </button>
-
-            <button
-              onClick={openAdminModal}
-              className="px-5 py-3 rounded-xl bg-[#D4AF37] hover:bg-[#B38F24] text-[#181513] font-bold text-sm shadow-xl transition-all flex items-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Panel CMS Visual</span>
-            </button>
-
-            <button
-              onClick={() => openManualModal('sistema')}
-              className="px-5 py-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 font-bold text-sm shadow-xl transition-all flex items-center gap-2"
-            >
-              <BookOpen className="w-4 h-4 text-[#D4AF37]" />
-              <span>Manual de Sistema & Uso</span>
-            </button>
-          </div>
-        </div>
+        ))}
       </div>
-
-      <AdminCMSModal />
-      <BusinessPortalModal
-        isOpen={isBusinessPortalOpen}
-        onClose={closeBusinessPortal}
-      />
-      <ManualModal
-        isOpen={isManualModalOpen}
-        onClose={closeManualModal}
-        initialTab={manualActiveTab}
-      />
-    </div>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PERMISSIONS, PERMISSION_CODES } from '../auth/permissions';
 
 const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 
@@ -26,7 +27,7 @@ const publicSelect = {
   lockedUntil: true,
   lastLoginAt: true,
   createdAt: true,
-  role: { select: { id: true, name: true, isAdmin: true } },
+  role: { select: { id: true, name: true, isAdmin: true, permissions: true } },
 } as const;
 
 export interface CreateUserInput {
@@ -39,6 +40,7 @@ export interface CreateUserInput {
 export interface CreateRoleInput {
   name: string;
   description?: string;
+  permissions?: string[];
 }
 
 @Injectable()
@@ -77,7 +79,7 @@ export class UsersService {
       where: { id: input.roleId },
     });
     if (!role) throw new NotFoundException('Rol no existe');
-        if (!role.isAdmin && areaId === null) {
+    if (role.permissions.includes('area.manage') && areaId === null) {
       throw new BadRequestException('areaId es obligatorio para este rol');
     }
     if (areaId !== null) {
@@ -94,7 +96,7 @@ export class UsersService {
         data: {
           username,
           fullName,
-          areaId: role.isAdmin ? null : areaId,
+          areaId: role.permissions.includes('area.manage') ? areaId : null,
           roleId: role.id,
           passwordHash: await bcrypt.hash(temp, 12),
           mustChangePassword: true,
@@ -152,6 +154,28 @@ export class UsersService {
     return user;
   }
 
+  private cleanPerms(p?: string[]): string[] {
+    if (p === undefined) return [];
+    if (!Array.isArray(p)) throw new BadRequestException('permissions debe ser lista');
+    const bad = p.filter((x) => !PERMISSION_CODES.includes(x));
+    if (bad.length) throw new BadRequestException('Permiso invalido: ' + bad.join(', '));
+    return Array.from(new Set(p));
+  }
+
+  listPermissions() {
+    return PERMISSIONS;
+  }
+
+  async setRolePermissions(id: number, perms: string[], actorId: number, ip?: string) {
+    const role = await this.prisma.role.findUnique({ where: { id } });
+    if (!role) throw new NotFoundException('Rol no existe');
+    if (role.isAdmin) throw new BadRequestException('El rol Administrador no se edita');
+    const permissions = this.cleanPerms(perms);
+    const updated = await this.prisma.role.update({ where: { id }, data: { permissions } });
+    await this.audit(actorId, 'ROLE_PERMS', ip, `rol: ${role.name}`);
+    return updated;
+  }
+
   listRoles() {
     return this.prisma.role.findMany({ orderBy: { id: 'asc' } });
   }
@@ -165,6 +189,7 @@ export class UsersService {
           name,
           description: input.description?.trim() || null,
           isAdmin: false,
+          permissions: this.cleanPerms(input.permissions),
         },
       });
       await this.audit(actorId, 'ROLE_CREATED', ip, `rol: ${name}`);

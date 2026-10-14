@@ -6,5 +6,5 @@ export async function GET(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Sin sesion' }, { status: 401 });
   }
-  return NextResponse.json({ user });
+  return NextResponse.json({ ...user, user });
 }

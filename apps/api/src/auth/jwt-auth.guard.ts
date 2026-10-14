@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ALLOW_MUST_CHANGE } from './allow-must-change.decorator';
+import { ALL_PERMISSIONS } from './permissions';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -62,6 +63,7 @@ export class JwtAuthGuard implements CanActivate {
       areaId: user.areaId,
       area: user.area?.name ?? null,
       mustChange: user.mustChangePassword,
+      permissions: user.role.isAdmin ? ALL_PERMISSIONS : user.role.permissions,
     };
     return true;
   }

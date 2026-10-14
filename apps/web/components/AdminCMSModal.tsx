@@ -49,7 +49,9 @@ const AVAILABLE_IMAGES = [
   { label: 'Astronomía Andina Inka Lab', url: '/images/inkalab/astronomia.jpeg' },
 ];
 
-export function AdminCMSModal() {
+export type CmsTab = 'tours' | 'content' | 'testimonials' | 'contacts' | 'settings';
+
+export function AdminCMSModal({ embedded = false, initialTab }: { embedded?: boolean; initialTab?: CmsTab } = {}) {
   const {
     tours,
     generalContent,
@@ -74,7 +76,7 @@ export function AdminCMSModal() {
   } = useCMS();
 
   // Navigation tab inside admin
-  const [activeTab, setActiveTab] = useState<'tours' | 'content' | 'testimonials' | 'contacts' | 'settings'>('tours');
+  const [activeTab, setActiveTab] = useState<CmsTab>(initialTab ?? 'tours');
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [searchTour, setSearchTour] = useState('');
@@ -358,16 +360,17 @@ export function AdminCMSModal() {
     }
   };
 
-  if (!isAdminModalOpen) return null;
+  if (!isAdminModalOpen && !embedded) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="admin-cms-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6"
+      className={embedded ? 'w-full' : 'fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6'}
     >
-      <div className="relative bg-[#181513] text-stone-100 w-full max-w-6xl rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-[#F6A935] my-3 sm:my-6 max-h-[94vh] flex flex-col overflow-hidden">
+      <div className={embedded ? 'relative bg-[#181513] text-stone-100 w-full rounded-2xl shadow-md border border-stone-700 flex flex-col overflow-hidden' : 'relative bg-[#181513] text-stone-100 w-full max-w-6xl rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-[#F6A935] my-3 sm:my-6 max-h-[94vh] flex flex-col overflow-hidden'}>
+{!embedded && (<>
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-5 border-b-2 border-[#F6A935]/40 bg-[#221E1B] shrink-0">
           <div className="flex items-center gap-3">
@@ -411,7 +414,9 @@ export function AdminCMSModal() {
           </div>
         </div>
 
-        {/* Notification Toast */}
+</>)}
+
+                {/* Notification Toast */}
         {notification && (
           <div className="bg-emerald-500/90 text-white px-6 py-2.5 text-center font-bold text-sm shadow-md flex items-center justify-center gap-2 border-b border-emerald-400">
             <CheckCircle className="w-4 h-4" />
@@ -444,6 +449,7 @@ export function AdminCMSModal() {
         ) : (
           /* Authenticated Dashboard */
           <div className="flex-1 flex flex-col overflow-hidden">
+{!initialTab && (<>
             {/* Tabs Navigation */}
             <div className="flex items-center gap-2 px-4 sm:px-8 py-3 bg-[#221E1B] border-b border-stone-800 overflow-x-auto scrollbar-none shrink-0">
               <button
@@ -510,7 +516,9 @@ export function AdminCMSModal() {
               </button>
             </div>
 
-            {/* Tab 1: Tours CRUD */}
+</>)}
+
+                    {/* Tab 1: Tours CRUD */}
             {activeTab === 'tours' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">

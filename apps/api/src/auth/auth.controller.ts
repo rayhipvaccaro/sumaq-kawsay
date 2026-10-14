@@ -47,6 +47,7 @@ export class AuthController {
       isAdmin: u.isAdmin,
       area: u.area,
       areaId: u.areaId,
+      permissions: u.permissions,
       mustChangePassword: u.mustChange,
     };
   }

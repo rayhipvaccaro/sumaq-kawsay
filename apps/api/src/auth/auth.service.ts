@@ -8,6 +8,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { ALL_PERMISSIONS } from './permissions';
+
 const MAX_FAILS = 5;
 const LOCK_MIN = 15;
 const MIN_PASSWORD = 10;
@@ -19,6 +21,8 @@ export interface SessionUser {
   role: string;
   isAdmin: boolean;
   area: string | null;
+  areaId: number | null;
+  permissions: string[];
 }
 
 export interface LoginResult {
@@ -48,7 +52,7 @@ export class AuthService {
     tokenVersion: number;
     area: { name: string } | null;
     mustChangePassword: boolean;
-    role: { name: string; isAdmin: boolean };
+    role: { name: string; isAdmin: boolean; permissions: string[] };
   }): LoginResult {
     const sessionUser: SessionUser = {
       id: user.id,
@@ -57,6 +61,8 @@ export class AuthService {
       role: user.role.name,
       isAdmin: user.role.isAdmin,
       area: user.area?.name ?? null,
+      areaId: user.areaId,
+      permissions: user.role.isAdmin ? ALL_PERMISSIONS : user.role.permissions,
     };
     const accessToken = this.jwt.sign({
       sub: user.id,

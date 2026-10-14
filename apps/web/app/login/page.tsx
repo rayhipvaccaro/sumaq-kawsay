@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { homeFor } from '@/lib/permissions';
 import { Lock, ArrowLeft, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 type Mode = 'login' | 'change' | 'noadmin';
@@ -61,12 +62,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const finish = (user: { isAdmin: boolean }) => {
-    if (user?.isAdmin) {
-      window.location.href = safeNext();
-    } else {
-      setMode('noadmin');
-    }
+  const finish = (user: { isAdmin: boolean; permissions?: string[] }) => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    const target = next && next.startsWith('/') && !next.startsWith('//') ? next : homeFor(user);
+    window.location.href = target;
   };
 
   const onLogin = async (e: React.FormEvent) => {
@@ -158,7 +157,7 @@ export default function LoginPage() {
             {mode === 'login' && 'Entra con tu usuario y clave.'}
             {mode === 'change' && 'Tu clave es temporal. Debes cambiarla para continuar.'}
             {mode === 'noadmin' &&
-              'Tu cuenta no es de administrador. Tu panel de encargado se habilita pronto.'}
+              'Tu cuenta no tiene panel de administracion.'}
           </p>
         </div>
 

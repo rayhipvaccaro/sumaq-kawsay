@@ -25,6 +25,19 @@ import {
   INITIAL_RESERVATIONS,
   INITIAL_ACCOUNTING_ENTRIES,
 } from '@/data/businessData';
+import { hasPerm, hasAny } from '@/lib/permissions';
+
+export interface SessionInfo {
+  id: number;
+  username: string;
+  fullName?: string;
+  role: string;
+  isAdmin: boolean;
+  area: string | null;
+  areaId?: number | null;
+  permissions: string[];
+  mustChangePassword?: boolean;
+}
 
 export interface BookingPreset {
   /** id del hospedaje o actividad elegida en el buscador del home */
@@ -49,6 +62,9 @@ interface CMSContextType {
   // Roles & Security
   currentRole: UserRole;
   setCurrentRole: (role: UserRole) => void;
+  sessionUser: SessionInfo | null;
+  can: (perm: string) => boolean;
+  portalRoles: UserRole[];
   isAdminModalOpen: boolean;
   isAdminAuthenticated: boolean;
   openAdminModal: () => void;
@@ -160,17 +176,29 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [sessionUser, setSessionUser] = useState<SessionInfo | null>(null);
 
   // La sesion de admin viene de la cookie real (Nest), no de un PIN local.
   useEffect(() => {
     let cancelled = false;
     fetch('/api/auth/me', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((u) => {
-        if (!cancelled) setIsAdminAuthenticated(Boolean(u?.isAdmin) && !u?.mustChangePassword);
+      .then((j) => {
+        const u = (j?.user ?? j) as SessionInfo | null;
+        if (cancelled) return;
+        if (u && u.username) {
+          setSessionUser(u);
+          setIsAdminAuthenticated(hasAny(u, ['cms.edit', 'payments.manage', 'orders.view', 'leads.view']));
+        } else {
+          setSessionUser(null);
+          setIsAdminAuthenticated(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setIsAdminAuthenticated(false);
+        if (!cancelled) {
+          setSessionUser(null);
+          setIsAdminAuthenticated(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -200,6 +228,12 @@ export function CMSProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   };
+
+  const can = (perm: string) => hasPerm(sessionUser, perm);
+  const portalRoles: UserRole[] = [];
+  if (hasAny(sessionUser, ['cms.edit', 'leads.view', 'agencies.manage'])) portalRoles.push('ventas');
+  if (hasAny(sessionUser, ['payments.manage', 'orders.view'])) portalRoles.push('contador');
+  if (sessionUser?.isAdmin && !sessionUser.mustChangePassword) portalRoles.push('admin', 'usuario');
 
   // Business Modals
   const [isBusinessPortalOpen, setIsBusinessPortalOpen] = useState<boolean>(false);
@@ -730,6 +764,9 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         // Roles & Auth
         currentRole,
         setCurrentRole,
+        sessionUser,
+        can,
+        portalRoles,
         isAdminModalOpen,
         isAdminAuthenticated,
         openAdminModal,

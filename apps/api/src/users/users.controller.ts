@@ -52,6 +52,20 @@ export class UsersController {
     return this.users.listRoles();
   }
 
+  @Get('permissions')
+  listPermissions() {
+    return this.users.listPermissions();
+  }
+
+  @Patch('roles/:id/permissions')
+  setRolePermissions(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { permissions: string[] },
+    @Req() req: AuthedReq,
+  ) {
+    return this.users.setRolePermissions(id, body?.permissions, req.user.sub, req.ip);
+  }
+
   @Post('roles')
   createRole(@Body() body: CreateRoleInput, @Req() req: AuthedReq) {
     return this.users.createRole(body, req.user.sub, req.ip);

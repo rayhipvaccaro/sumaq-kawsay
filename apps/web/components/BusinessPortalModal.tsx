@@ -52,6 +52,8 @@ interface BusinessPortalModalProps {
   onClose: () => void;
   initialRole?: UserRole;
   lang?: 'es' | 'en';
+  embedded?: boolean;
+  forceRole?: UserRole;
 }
 
 export function BusinessPortalModal({
@@ -59,10 +61,13 @@ export function BusinessPortalModal({
   onClose,
   initialRole,
   lang = 'es',
+  embedded = false,
+  forceRole,
 }: BusinessPortalModalProps) {
   const {
     currentRole,
     setCurrentRole,
+    portalRoles,
     reservations,
     stockItems,
     providers,
@@ -83,7 +88,8 @@ export function BusinessPortalModal({
   const isEs = lang === 'es';
 
   // Active Role tab inside the portal
-  const activeRole: UserRole = currentRole || initialRole || 'ventas';
+  const wanted: UserRole = currentRole || initialRole || 'ventas';
+  const activeRole: UserRole = embedded && forceRole ? forceRole : portalRoles.includes(wanted) ? wanted : (portalRoles[0] ?? 'usuario');
 
   // Sub-tabs for Admin view
   const [adminSubTab, setAdminSubTab] = useState<'stock' | 'providers' | 'roles' | 'stats'>('stock');
@@ -134,7 +140,7 @@ export function BusinessPortalModal({
   // Notification toast
   const [notification, setNotification] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen && !embedded) return null;
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -286,9 +292,9 @@ ${res.assignedAgent}`
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6"
+      className={embedded ? 'w-full' : 'fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6'}
     >
-      <div className="relative bg-[#FDFBF7] w-full max-w-6xl rounded-3xl shadow-2xl border-2 border-[#F6A935] my-4 max-h-[95vh] flex flex-col overflow-hidden text-[#1C1917]">
+      <div className={embedded ? 'relative bg-[#FDFBF7] w-full rounded-2xl shadow-sm border border-stone-300 flex flex-col text-[#1C1917]' : 'relative bg-[#FDFBF7] w-full max-w-6xl rounded-3xl shadow-2xl border-2 border-[#F6A935] my-4 max-h-[95vh] flex flex-col overflow-hidden text-[#1C1917]'}>
         {/* Toast Notification */}
         {notification && (
           <div className="absolute top-4 right-1/2 translate-x-1/2 z-50 bg-[#181513] text-[#F6A935] px-6 py-2.5 rounded-full border border-[#F6A935] shadow-xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce">
@@ -297,6 +303,7 @@ ${res.assignedAgent}`
           </div>
         )}
 
+{!embedded && (<>
         {/* Top Header Ribbon */}
         <div className="bg-[#181513] text-stone-100 px-5 sm:px-8 py-3.5 border-b-2 border-[#F6A935]/50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -334,7 +341,7 @@ ${res.assignedAgent}`
             </span>
 
             {/* Role 1: Ventas y Marketing */}
-            <button
+            {portalRoles.includes('ventas') && (<button
               onClick={() => setCurrentRole('ventas')}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
                 activeRole === 'ventas'
@@ -344,10 +351,10 @@ ${res.assignedAgent}`
             >
               <Briefcase className="w-3.5 h-3.5" />
               <span>Ventas & Marketing</span>
-            </button>
+            </button>)}
 
             {/* Role 2: Contador */}
-            <button
+            {portalRoles.includes('contador') && (<button
               onClick={() => setCurrentRole('contador')}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
                 activeRole === 'contador'
@@ -357,10 +364,10 @@ ${res.assignedAgent}`
             >
               <Calculator className="w-3.5 h-3.5" />
               <span>Contador (Finanzas)</span>
-            </button>
+            </button>)}
 
             {/* Role 3: Administrador */}
-            <button
+            {portalRoles.includes('admin') && (<button
               onClick={() => setCurrentRole('admin')}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
                 activeRole === 'admin'
@@ -370,10 +377,10 @@ ${res.assignedAgent}`
             >
               <Shield className="w-3.5 h-3.5" />
               <span>Administrador General</span>
-            </button>
+            </button>)}
 
             {/* Role 4: Usuario / Cliente */}
-            <button
+            {portalRoles.includes('usuario') && (<button
               onClick={() => setCurrentRole('usuario')}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
                 activeRole === 'usuario'
@@ -383,7 +390,7 @@ ${res.assignedAgent}`
             >
               <User className="w-3.5 h-3.5" />
               <span>Vista Turista / Cliente</span>
-            </button>
+            </button>)}
           </div>
 
           {/* Quick Manuals button */}
@@ -396,7 +403,9 @@ ${res.assignedAgent}`
           </button>
         </div>
 
-        {/* Dynamic Role Content Body */}
+</>)}
+
+                {/* Dynamic Role Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
           {/* ========================================================================= */}
           {/* 1. VENTAS Y MARKETING */}

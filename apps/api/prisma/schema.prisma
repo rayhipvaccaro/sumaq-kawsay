@@ -73,6 +73,7 @@ model Role {
   name        String   @unique
   description String?
   isAdmin     Boolean  @default(false)
+  permissions String[] @default([])
   createdAt   DateTime @default(now())
   users       User[]
 }

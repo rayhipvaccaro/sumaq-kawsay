@@ -7,6 +7,8 @@ export interface SessionUser {
   role: string;
   isAdmin: boolean;
   area: string | null;
+  areaId?: number | null;
+  permissions: string[];
   mustChangePassword: boolean;
 }
 

@@ -1,54 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { CMSData } from '@/data/defaultCmsData';
 import { getSession } from '@/lib/serverAuth';
-import { requireAdmin } from '@/lib/requireAuth';
+import { CMS_FIELD_PERMS, hasAny } from '@/lib/permissions';
 import { mergeReservations, mutateCms, readCms } from '@/lib/orderStore';
 
-// El publico ve solo el contenido del sitio. Reservas, contactos, contabilidad,
-// proveedores y stock (datos personales y de negocio) solo los ve un admin.
+// Campos "internos" (datos personales y de negocio): solo los ve quien tiene el permiso.
+// Tours, textos y testimonios son publicos.
+const PUBLIC_FIELDS = ['tours', 'generalContent', 'testimonials'];
+
 export async function GET(req: NextRequest) {
-  const data = readCms();
+  const data = readCms() as unknown as Record<string, unknown>;
   const user = await getSession(req);
-  const isAdmin = Boolean(user?.isAdmin) && !user?.mustChangePassword;
-  if (isAdmin) return NextResponse.json(data);
-  const {
-    contacts: _c,
-    reservations: _r,
-    accountingEntries: _a,
-    providers: _p,
-    stockItems: _s,
-    ...publicData
-  } = data;
-  void _c; void _r; void _a; void _p; void _s;
-  return NextResponse.json(publicData);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (PUBLIC_FIELDS.includes(k)) out[k] = v;
+    else if (hasAny(user, CMS_FIELD_PERMS[k] ?? [])) out[k] = v;
+  }
+  return NextResponse.json(out);
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin(req);
-  if ('error' in auth) return auth.error;
-  let updated: Partial<CMSData>;
+  const user = await getSession(req);
+  if (!user) return NextResponse.json({ error: 'Sin sesion' }, { status: 401 });
+  if (user.mustChangePassword) {
+    return NextResponse.json({ error: 'Debes cambiar tu clave' }, { status: 403 });
+  }
+  let incoming: Record<string, unknown>;
   try {
-    updated = (await req.json()) as Partial<CMSData>;
+    incoming = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
+  // Solo pasan los campos para los que el usuario tiene permiso.
+  const updated: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(incoming)) {
+    if (hasAny(user, CMS_FIELD_PERMS[k] ?? [])) updated[k] = v;
+  }
+  if (Object.keys(updated).length === 0) {
+    return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
+  }
+  const upd = updated as Partial<CMSData>;
   try {
-    const merged = await mutateCms((current) => {
+    await mutateCms((current) => {
       const next: CMSData = {
         ...current,
-        ...updated,
+        ...upd,
         generalContent: {
           ...current.generalContent,
-          ...(updated.generalContent || {}),
+          ...(upd.generalContent || {}),
         },
       };
-      if (Array.isArray(updated.reservations)) {
-        next.reservations = mergeReservations(current.reservations ?? [], updated.reservations);
+      if (Array.isArray(upd.reservations)) {
+        next.reservations = mergeReservations(current.reservations ?? [], upd.reservations);
       }
       Object.assign(current, next);
       return next;
     });
-    return NextResponse.json({ success: true, data: merged, diskPersisted: true });
+    return NextResponse.json({ success: true, diskPersisted: true });
   } catch (error) {
     console.error('Error updating CMS data:', error);
     return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 });
