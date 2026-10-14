@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   X,
   Search,
@@ -22,6 +22,54 @@ import {
 } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
 import { Reservation } from '@/data/businessData';
+
+function PaymentStrip({ id, isEs }: { id: string; isEs: boolean }) {
+  const [info, setInfo] = useState<{ totalPEN: number; amountPaidPEN: number; paymentStatus: string } | null>(null);
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    let tk = '';
+    try {
+      tk = localStorage.getItem(`sq_pay_${id}`) ?? '';
+    } catch {
+      tk = '';
+    }
+    setToken(tk);
+    fetch(`/api/orders/${encodeURIComponent(id)}?t=${encodeURIComponent(tk)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setInfo)
+      .catch(() => setInfo(null));
+  }, [id]);
+
+  if (!info) return null;
+  const label =
+    info.paymentStatus === 'pagado_100'
+      ? isEs ? 'Pagado al 100%' : 'Paid in full'
+      : info.paymentStatus === 'adelanto_50'
+        ? isEs ? 'Adelanto recibido' : 'Deposit received'
+        : info.paymentStatus === 'anulado'
+          ? isEs ? 'Pago anulado' : 'Payment voided'
+          : isEs ? 'Pago pendiente' : 'Payment pending';
+  const canPay = info.paymentStatus === 'pendiente' || info.paymentStatus === 'adelanto_50';
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-2xl p-4 border border-stone-200">
+      <div className="text-sm">
+        <div className="font-extrabold text-stone-900">{label}</div>
+        <div className="text-stone-500">
+          S/ {info.amountPaidPEN.toFixed(2)} / S/ {info.totalPEN.toFixed(2)}
+        </div>
+      </div>
+      {canPay && (
+        <a
+          href={`/pago/${id}?t=${token}`}
+          className="px-4 py-2.5 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-bold text-sm"
+        >
+          {isEs ? 'Pagar ahora' : 'Pay now'}
+        </a>
+      )}
+    </div>
+  );
+}
 
 interface OrderTrackerModalProps {
   isOpen: boolean;
@@ -215,6 +263,8 @@ export function OrderTrackerModal({
                   </button>
                 </div>
               </div>
+
+              <PaymentStrip id={targetReservation.id} isEs={isEs} />
 
               {/* Real-time Timeline */}
               {targetReservation.status !== 'declinado' && (

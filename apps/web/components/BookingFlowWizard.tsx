@@ -403,6 +403,7 @@ export function BookingFlowWizard({
       setCreatedReservationId(reservationId);
     } catch (err) {
       console.error('Error creating reservation:', err);
+      alert(isEs ? 'No se pudo registrar tu orden. Intenta de nuevo.' : 'Could not register your order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -616,6 +617,12 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
               </div>
 
               {/* Action Buttons */}
+              <a
+                href={`/pago/${createdReservationId}?t=${(() => { try { return localStorage.getItem(`sq_pay_${createdReservationId}`) ?? ''; } catch { return ''; } })()}`}
+                className="block w-full py-4 px-6 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-black text-base shadow-lg text-center border border-[#FDE8B5] transition-all"
+              >
+                {isEs ? 'Pagar ahora (adelanto 50% o total)' : 'Pay now (50% deposit or full)'}
+              </a>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
                   href={composeWhatsAppLink()}

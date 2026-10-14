@@ -395,13 +395,34 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   const createReservation = async (
     reservationData: Omit<Reservation, 'id' | 'createdAt' | 'emailLogs'>
   ): Promise<string> => {
-    const orderNumber = 100 + (data.reservations?.length || 0) + 1;
-    const reservationId = `SQ-2026-0${orderNumber}`;
+    // El servidor crea la orden (id, llave de pago, estado). Asi la ve el admin aunque
+    // el turista no haya iniciado sesion.
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reservationData),
+    });
+    const created = await res.json().catch(() => ({}));
+    if (!res.ok || !created?.id) {
+      throw new Error(created?.error ?? 'No se pudo registrar la orden');
+    }
+    const reservationId: string = created.id;
+    const accessToken: string = created.accessToken;
 
+    try {
+      localStorage.setItem(`sq_pay_${reservationId}`, accessToken);
+    } catch {
+      // ignore
+    }
+
+    // Copia local para que el turista siga su orden en este equipo.
     const newReservation: Reservation = {
       ...reservationData,
       id: reservationId,
       createdAt: new Date().toISOString(),
+      accessToken,
+      amountPaidPEN: 0,
+      payments: [],
       emailLogs: [
         {
           id: `log-${Date.now()}`,
@@ -409,32 +430,19 @@ export function CMSProvider({ children }: { children: ReactNode }) {
           sender: 'sistema@sumaqkawsay.pe',
           recipient: reservationData.customerEmail,
           subject: `Confirmación de Solicitud de Reserva ${reservationId} · Sumaq Kawsay`,
-          body: `Hola ${reservationData.customerName}, hemos recibido exitosamente tu solicitud de experiencia integral. Tu asesor de ventas se pondrá en contacto para afinar detalles y confirmar disponibilidad.`,
+          body: `Hola ${reservationData.customerName}, hemos recibido tu solicitud de experiencia integral.`,
           type: 'cotizacion',
         },
       ],
     };
-
-    // Also add to contacts leads for sales visibility
-    const newLead: ContactLead = {
-      id: `lead-${Date.now()}`,
-      name: reservationData.customerName,
-      email: reservationData.customerEmail,
-      phone: reservationData.customerPhone,
-      message: `[Reserva ${reservationId}] Noches/Huéspedes: ${reservationData.guestsCount} | Total: S/ ${reservationData.totalPEN} ($${reservationData.totalUSD} USD) | Notas: ${reservationData.notes || 'Ninguna'}`,
-      tourInterest: reservationData.stayItem?.name || reservationData.activities[0]?.name || 'Experiencia Integral Inka Lab',
-      travelDate: reservationData.travelDate,
-      createdAt: new Date().toISOString(),
-      status: 'nuevo',
-    };
-
-    const updatedReservations = [newReservation, ...(data.reservations || [])];
-    const updatedContacts = [newLead, ...(data.contacts || [])];
-
-    await persistChanges({
-      ...data,
-      reservations: updatedReservations,
-      contacts: updatedContacts,
+    setData((prev) => {
+      const next = { ...prev, reservations: [newReservation, ...(prev.reservations || [])] };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
     });
 
     return reservationId;

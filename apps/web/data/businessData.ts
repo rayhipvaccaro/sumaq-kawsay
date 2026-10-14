@@ -37,6 +37,21 @@ export type PaymentStatus = 'pendiente' | 'adelanto_50' | 'pagado_100' | 'anulad
 export type PaymentMethod = 'yape_plin' | 'transferencia_bcp' | 'interbank' | 'tarjeta' | 'efectivo';
 export type InvoiceType = 'boleta' | 'factura' | 'nota_venta';
 
+export interface PaymentRecord {
+  id: string;
+  date: string;
+  method: PaymentMethod;
+  plan: 'adelanto_50' | 'pagado_100';
+  amountPEN: number;
+  status: 'aprobado' | 'rechazado' | 'por_verificar';
+  provider: 'simulado';
+  txId: string;
+  cardBrand?: string;
+  cardLast4?: string;
+  operationCode?: string;
+  message?: string;
+}
+
 export interface EmailLog {
   id: string;
   date: string;
@@ -96,6 +111,11 @@ export interface Reservation {
   invoiceType: InvoiceType;
   invoiceNumber?: string; // ej. B001-00045 o F001-00012
   invoiceIssuedAt?: string;
+
+  // Pasarela de pagos (simulada)
+  accessToken?: string; // llave privada del turista para ver/pagar su orden
+  amountPaidPEN?: number;
+  payments?: PaymentRecord[];
 
   // Historial de correos y notas
   emailLogs: EmailLog[];
