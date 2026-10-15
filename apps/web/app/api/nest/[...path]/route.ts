@@ -3,7 +3,7 @@ import { API_URL, SESSION_COOKIE } from '@/lib/session';
 
 // Proxy con lista blanca hacia Nest. El token vive en cookie httpOnly;
 // Nest valida rol, permisos y area en cada llamada.
-const ALLOWED = new Set(['users', 'roles', 'permissions', 'areas', 'me', 'activities', 'slots', 'resources']);
+const ALLOWED = new Set(['users', 'roles', 'permissions', 'areas', 'me', 'activities', 'slots', 'resources', 'runs']);
 
 async function handle(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;

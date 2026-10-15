@@ -26,7 +26,9 @@ model Activity {
   updatedAt   DateTime   @updatedAt
   resources   Resource[]
   slots       Slot[]
-
+  trips       Trip[]
+  routes      Route[]
+  resourceLabel String?
   @@index([areaId])
 }
 
@@ -35,6 +37,13 @@ model Resource {
   activityId Int
   name       String
   active     Boolean  @default(true)
+  seats       Int            @default(1)
+  tripsPerDay Int            @default(1)
+  status      ResourceStatus @default(ACTIVE)
+  kind        String         @default("main")
+  ownerId     Int?
+  days        ResourceDay[]
+  runs        ServiceRun[]
   createdAt  DateTime @default(now())
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
@@ -48,12 +57,15 @@ model Slot {
   endsAt     DateTime
   capacity   Int
   booked     Int       @default(0)
+  tripId     Int?
+  trip       Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
   createdAt  DateTime  @default(now())
   activity   Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
   bookings   Booking[]
 
   @@unique([activityId, startsAt])
   @@index([startsAt])
+  @@index([tripId])
 }
 
 model Booking {
@@ -62,6 +74,8 @@ model Booking {
   quantity        Int
   customerName    String
   customerContact String
+  customerDoc     String?
+  runs            ServiceRun[]
   status          BookingStatus @default(CONFIRMED)
   createdAt       DateTime      @default(now())
   slot            Slot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
@@ -121,4 +135,74 @@ model Area {
   createdAt  DateTime   @default(now())
   activities Activity[]
   users      User[]
+}
+enum ResourceStatus {
+  ACTIVE
+  REST
+  MAINTENANCE
+}
+
+model Trip {
+  id          Int      @id @default(autoincrement())
+  activityId  Int
+  number      Int
+  startTime   String
+  durationMin Int      @default(60)
+  active      Boolean  @default(true)
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  slots       Slot[]
+
+  @@unique([activityId, number])
+}
+enum RunStatus {
+  IN_PROGRESS
+  DONE
+  NOT_DONE
+}
+
+model ResourceDay {
+  id         Int      @id @default(autoincrement())
+  resourceId Int
+  date       String
+  trips      Int?
+  unassigned Boolean  @default(false)
+  coverId    Int?
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, date])
+}
+
+model Route {
+  id         Int      @id @default(autoincrement())
+  activityId Int
+  name       String
+  minMin     Int
+  maxMin     Int
+  active     Boolean  @default(true)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, name])
+}
+
+model ServiceRun {
+  id           Int       @id @default(autoincrement())
+  bookingId    Int
+  activityId   Int
+  resourceId   Int?
+  routeId      Int?
+  routeName    String?
+  status       RunStatus @default(IN_PROGRESS)
+  startedAt    DateTime?
+  plannedEndAt DateTime?
+  endedAt      DateTime?
+  startedById  Int?
+  ownerId      Int?
+  reason       String?
+  createdAt    DateTime  @default(now())
+  booking      Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  resource     Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([activityId, status])
+  @@index([resourceId])
 }

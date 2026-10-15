@@ -7,6 +7,7 @@ import {
 import { assertAreaAccess } from '../auth/area.util';
 import type { TokenUser } from '../auth/area.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { recalcCapacity } from './capacity.util';
 
 export interface CreateActivityInput {
   name: string;
@@ -19,6 +20,8 @@ export interface CreateActivityInput {
 export interface CreateResourcesInput {
   name: string;
   count?: number;
+  seats?: number;
+  tripsPerDay?: number;
 }
 
 export interface CreateSlotInput {
@@ -134,11 +137,22 @@ export class ActivitiesService {
       throw new BadRequestException('count debe ser entero entre 1 y 200');
     }
     const base = input.name.trim();
+        const seats = input.seats ?? 1;
+    const tripsPerDay = input.tripsPerDay ?? 1;
+    if (!Number.isInteger(seats) || seats < 1 || seats > 20) {
+      throw new BadRequestException('seats entre 1 y 20');
+    }
+    if (!Number.isInteger(tripsPerDay) || tripsPerDay < 1 || tripsPerDay > 6) {
+      throw new BadRequestException('tripsPerDay entre 1 y 6');
+    }
     const data = Array.from({ length: count }, (_, i) => ({
       activityId,
       name: count === 1 ? base : `${base} ${i + 1}`,
+      seats,
+      tripsPerDay,
     }));
     await this.prisma.resource.createMany({ data });
+    await recalcCapacity(this.prisma, activityId);
     return this.prisma.resource.findMany({
       where: { activityId, active: true },
       orderBy: { id: 'asc' },
@@ -152,10 +166,12 @@ export class ActivitiesService {
     });
     if (!resource) throw new NotFoundException('Recurso no existe');
     assertAreaAccess(user, resource.activity.areaId);
-    return this.prisma.resource.update({
+        const updated = await this.prisma.resource.update({
       where: { id },
       data: { active: false },
     });
+    await recalcCapacity(this.prisma, resource.activityId);
+    return updated;
   }
 
   async createSlot(activityId: number, input: CreateSlotInput, user: TokenUser) {

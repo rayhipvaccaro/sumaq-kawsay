@@ -1,115 +1,111 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { Activity, api, Board, Booking, dayKey, Run } from '@/components/admin/mi-area/ui';
+import { HoyTab } from '@/components/admin/mi-area/HoyTab';
+import { ResourcesTab } from '@/components/admin/mi-area/ResourcesTab';
+import { RoutesTab } from '@/components/admin/mi-area/RoutesTab';
+import { SlotsTab } from '@/components/admin/mi-area/SlotsTab';
+import { BookingsTab } from '@/components/admin/mi-area/BookingsTab';
+import { SettingsTab } from '@/components/admin/mi-area/SettingsTab';
 
-interface Slot { id: number; startsAt: string; endsAt: string; capacity: number; booked: number }
-interface Activity { id: number; name: string; area: { id: number; name: string }; slots: Slot[] }
-interface Booking {
-  id: number; quantity: number; customerName: string; customerContact: string; status: string; createdAt: string;
-  slot: { id: number; startsAt: string; activity: { id: number; name: string } };
-}
-
-const INPUT = 'px-3 py-2 rounded-lg border border-stone-400 bg-white text-stone-900 text-sm placeholder-stone-500 focus:outline-none focus:border-[#B7791F] focus:ring-2 focus:ring-[#F6A935]/40';
-const BTN = 'px-4 py-2 rounded-lg bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-bold text-sm disabled:opacity-60';
-const BTN2 = 'px-2.5 py-1.5 rounded-md bg-white hover:bg-stone-100 text-stone-800 text-xs font-semibold border border-stone-400';
-
-async function api(path: string, method = 'GET', body?: unknown) {
-  const res = await fetch(`/api/nest/${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const m = Array.isArray(data?.message) ? data.message.join(', ') : data?.message ?? data?.error;
-    throw new Error(m || 'Error');
-  }
-  return data;
-}
-
-const fmt = (d: string) =>
-  new Date(d).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+type Tab = 'hoy' | 'recursos' | 'rutas' | 'slots' | 'bookings' | 'settings';
+type Msg = { ok: boolean; text: string };
 
 export default function MiAreaPage() {
   const [acts, setActs] = useState<Activity[]>([]);
+  const [sel, setSel] = useState<number | null>(null);
+  const [tab, setTab] = useState<Tab>('hoy');
+  const [date, setDate] = useState(() => dayKey(new Date()));
+  const [board, setBoard] = useState<Board | null>(null);
   const [books, setBooks] = useState<Booking[]>([]);
-  const [msg, setMsg] = useState('');
-  const [when, setWhen] = useState<Record<number, string>>({});
-  const [cap, setCap] = useState<Record<number, string>>({});
+  const [msg, setMsg] = useState<Msg | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [tick, setTick] = useState(0);
 
-  const load = useCallback(async () => {
+  const act = acts.find((a) => a.id === sel) ?? acts[0] ?? null;
+  const actId = act?.id;
+  const label = act?.resourceLabel ?? null;
+
+  const allowed: Tab[] = label ? ['hoy', 'recursos', 'rutas', 'bookings', 'settings'] : ['slots', 'bookings', 'settings'];
+  const activeTab: Tab = allowed.includes(tab) ? tab : allowed[0];
+
+  useEffect(() => {
+    let off = false;
+    api('me/activities')
+      .then((a: Activity[]) => { if (!off) setActs(a); })
+      .catch((e: Error) => { if (!off) setMsg({ ok: false, text: e.message }); })
+      .finally(() => { if (!off) setLoaded(true); });
+    return () => { off = true; };
+  }, [tick]);
+
+  useEffect(() => {
+    if (!actId) return;
+    let off = false;
+    const bk = api(`me/bookings?activityId=${actId}&limit=500`) as Promise<Booking[]>;
+    const bd = label ? (api(`activities/${actId}/board?date=${date}`) as Promise<Board>) : Promise.resolve(null);
+    Promise.all([bk, bd])
+      .then(([b, d]) => { if (!off) { setBooks(b); setBoard(d); } })
+      .catch((e: Error) => { if (!off) setMsg({ ok: false, text: e.message }); });
+    return () => { off = true; };
+  }, [actId, label, date, tick]);
+
+  const run: Run = async (fn) => {
+    setMsg(null);
     try {
-      const [a, b] = await Promise.all([api('me/activities'), api('me/bookings?limit=100')]);
-      setActs(a); setBooks(b);
-    } catch (e) { setMsg((e as Error).message); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const run = async (fn: () => Promise<void>) => {
-    setMsg('');
-    try { await fn(); await load(); } catch (e) { setMsg((e as Error).message); }
+      const t = await fn();
+      setTick((n) => n + 1);
+      if (t) setMsg({ ok: true, text: t });
+    } catch (e) { setMsg({ ok: false, text: (e as Error).message }); }
   };
 
+  const tabs: { k: Tab; t: string }[] = label
+    ? [{ k: 'hoy', t: 'Hoy' }, { k: 'recursos', t: `${label}s` }, { k: 'rutas', t: 'Rutas' }, { k: 'bookings', t: 'Reservas' }, { k: 'settings', t: 'Ajustes' }]
+    : [{ k: 'slots', t: 'Horarios' }, { k: 'bookings', t: 'Reservas' }, { k: 'settings', t: 'Ajustes' }];
+
   return (
-    <div>
-      <div className="max-w-5xl space-y-8">
-        <PageHeader title="Mi área" help="Agrega los horarios de tu servicio y mira quién reservó. Solo ves y editas lo de tu área." />
-        {msg && <div className="p-3 rounded-lg bg-red-50 border border-red-300 text-red-800 text-sm">{msg}</div>}
+    <div className="max-w-5xl space-y-5">
+      <PageHeader title="Mi área" help="Cada día: revisa tus recursos, atiende a los turistas y marca cuando terminan. El cupo se calcula solo y la web lo usa para reservar." />
+      {msg && (
+        <div className={`p-3 rounded-lg border text-sm ${msg.ok ? 'bg-green-50 border-green-400 text-green-900' : 'bg-red-50 border-red-300 text-red-800'}`}>{msg.text}</div>
+      )}
+      {loaded && acts.length === 0 && <p className="text-stone-600 text-sm">No hay servicios en tu área.</p>}
 
-        {acts.length === 0 && <p className="text-stone-600 text-sm">No hay actividades en tu área.</p>}
-        {acts.map((a) => (
-          <section key={a.id} className="p-4 rounded-xl border border-stone-300 bg-white space-y-3">
-            <h2 className="font-bold text-lg text-stone-900">{a.name} <span className="text-xs text-stone-600">· {a.area.name}</span></h2>
-            <div className="flex flex-wrap gap-2 items-center">
-              <input type="datetime-local" className={INPUT} value={when[a.id] ?? ''} onChange={(e) => setWhen({ ...when, [a.id]: e.target.value })} />
-              <input type="number" min={1} className={`${INPUT} w-24`} placeholder="Cupos" value={cap[a.id] ?? ''} onChange={(e) => setCap({ ...cap, [a.id]: e.target.value })} />
+      {acts.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {acts.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setSel(a.id)}
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold border ${a.id === act?.id ? 'bg-[#F6A935] border-[#B7791F] text-[#181513]' : 'bg-white border-stone-400 text-stone-800 hover:bg-stone-100'}`}
+            >
+              {a.name} <span className="text-xs font-normal">· {a.area.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {act && (
+        <>
+          <div className="flex flex-wrap gap-1 border-b border-stone-300">
+            {tabs.map((t) => (
               <button
-                className={BTN}
-                onClick={() => run(async () => {
-                  if (!when[a.id]) throw new Error('Elige fecha y hora');
-                  await api(`activities/${a.id}/slots`, 'POST', {
-                    startsAt: new Date(when[a.id]).toISOString(),
-                    ...(cap[a.id] ? { capacity: Number(cap[a.id]) } : {}),
-                  });
-                })}
-              >Agregar horario</button>
-            </div>
-            <ul className="text-sm divide-y divide-stone-200">
-              {a.slots.map((s) => (
-                <li key={s.id} className="py-1.5 flex items-center justify-between gap-2">
-                  <span>{fmt(s.startsAt)} · {s.booked}/{s.capacity} cupos</span>
-                  <button className={BTN2} onClick={() => run(async () => { await api(`slots/${s.id}`, 'DELETE'); })}>Quitar</button>
-                </li>
-              ))}
-              {a.slots.length === 0 && <li className="py-1.5 text-stone-600">Sin horarios próximos.</li>}
-            </ul>
-          </section>
-        ))}
-
-        <section className="space-y-2 bg-white border border-stone-300 rounded-xl p-4">
-          <h2 className="font-bold text-lg text-stone-900">Reservas de mi área</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-stone-600">
-                <tr><th className="p-2">Actividad</th><th>Horario</th><th>Cliente</th><th>Contacto</th><th>Pers.</th><th>Estado</th></tr>
-              </thead>
-              <tbody>
-                {books.map((b) => (
-                  <tr key={b.id} className="border-t border-stone-300">
-                    <td className="p-2">{b.slot.activity.name}</td>
-                    <td>{fmt(b.slot.startsAt)}</td>
-                    <td>{b.customerName}</td>
-                    <td>{b.customerContact}</td>
-                    <td>{b.quantity}</td>
-                    <td>{b.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                key={t.k}
+                onClick={() => setTab(t.k)}
+                className={`px-4 py-2 text-sm font-semibold rounded-t-lg ${activeTab === t.k ? 'bg-white border border-b-white border-stone-300 -mb-px text-stone-900' : 'text-stone-600 hover:text-stone-900'}`}
+              >{t.t}</button>
+            ))}
           </div>
-        </section>
-      </div>
+
+          {activeTab === 'hoy' && label && <HoyTab key={act.id} label={label} board={board} date={date} setDate={setDate} actId={act.id} run={run} />}
+          {activeTab === 'recursos' && label && <ResourcesTab key={act.id} act={act} label={label} board={board} run={run} />}
+          {activeTab === 'rutas' && label && <RoutesTab key={act.id} act={act} board={board} run={run} />}
+          {activeTab === 'slots' && <SlotsTab key={act.id} act={act} run={run} />}
+          {activeTab === 'bookings' && <BookingsTab key={act.id} books={books} />}
+          {activeTab === 'settings' && <SettingsTab key={act.id} act={act} run={run} />}
+        </>
+      )}
     </div>
   );
 }
