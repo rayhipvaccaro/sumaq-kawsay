@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import { useState } from 'react';
 import { X, Calendar, User, Mail, Phone, Users, MessageSquare, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Tour } from '@/data/toursData';
@@ -12,7 +14,7 @@ interface BookingModalProps {
   selectedTour: Tour | null;
   customSummary: CustomQuoteSummary | null;
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
 }
 
 export function BookingModal({
@@ -49,11 +51,13 @@ export function BookingModal({
   // Estimated price
   let estimatedPriceDisplay = '';
   if (selectedTour) {
-    const single = currency === 'PEN' ? selectedTour.pricePEN : selectedTour.priceUSD;
-    const total = single * travelersCount;
-    estimatedPriceDisplay = currency === 'PEN' ? `S/ ${total.toFixed(2)}` : `$ ${total.toFixed(2)} USD`;
+    estimatedPriceDisplay = fmt(
+      selectedTour.pricePEN * travelersCount,
+      currency,
+      selectedTour.priceUSD * travelersCount,
+    );
   } else if (customSummary) {
-    estimatedPriceDisplay = currency === 'PEN' ? `S/ ${customSummary.totalPEN}` : `$ ${customSummary.totalUSD} USD`;
+    estimatedPriceDisplay = fmt(customSummary.totalPEN, currency, customSummary.totalUSD);
   }
 
   const handleSubmit = (e: React.FormEvent) => {

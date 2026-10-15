@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import Image from 'next/image';
 import { X, Clock, Mountain, Users, Check, AlertCircle, Backpack, MessageCircle, Calendar } from 'lucide-react';
 import { Tour } from '@/data/toursData';
@@ -7,7 +9,7 @@ import { Tour } from '@/data/toursData';
 interface TourDetailModalProps {
   tour: Tour | null;
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
   onClose: () => void;
   onBookTour: (tour: Tour) => void;
 }
@@ -22,9 +24,7 @@ export function TourDetailModal({
   if (!tour) return null;
 
   const isEs = lang === 'es';
-  const price = currency === 'PEN'
-    ? `S/ ${tour.pricePEN.toFixed(2)}`
-    : `$ ${tour.priceUSD.toFixed(2)} USD`;
+  const price = fmt(tour.pricePEN, currency, tour.priceUSD);
 
   const waMessage = encodeURIComponent(
     isEs

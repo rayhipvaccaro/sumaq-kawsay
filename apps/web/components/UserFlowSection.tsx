@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import {
   Bed,
   Compass,
@@ -16,7 +18,7 @@ import { useCMS } from '@/lib/cmsContext';
 
 interface UserFlowSectionProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
 }
 
 export function UserFlowSection({ lang, currency }: UserFlowSectionProps) {
@@ -86,7 +88,7 @@ export function UserFlowSection({ lang, currency }: UserFlowSectionProps) {
             </div>
 
             <div className="pt-4 border-t border-stone-800/80 mt-4 text-xs sm:text-sm text-stone-300 flex items-center justify-between">
-              <span>{isEs ? 'Desde S/ 290 / noche' : 'From $78 USD'}</span>
+              <span>{isEs ? 'Desde' : 'From'} {fmt(290, currency, 78)}{isEs ? ' / noche' : ' / night'}</span>
               <span className="text-[#F6A935] font-bold">1 / 4</span>
             </div>
           </div>
@@ -119,7 +121,7 @@ export function UserFlowSection({ lang, currency }: UserFlowSectionProps) {
             </div>
 
             <div className="pt-4 border-t border-stone-800/80 mt-4 text-xs sm:text-sm text-stone-300 flex items-center justify-between">
-              <span>{isEs ? 'Desde S/ 150 / pers.' : 'From $40 USD'}</span>
+              <span>{isEs ? 'Desde' : 'From'} {fmt(150, currency, 40)}{isEs ? ' / pers.' : ' / guest'}</span>
               <span className="text-[#F6A935] font-bold">2 / 4</span>
             </div>
           </div>
@@ -152,7 +154,7 @@ export function UserFlowSection({ lang, currency }: UserFlowSectionProps) {
             </div>
 
             <div className="pt-4 border-t border-stone-800/80 mt-4 text-xs sm:text-sm text-stone-300 flex items-center justify-between">
-              <span>{isEs ? 'Desde S/ 38 / plato' : 'From $10 USD'}</span>
+              <span>{isEs ? 'Desde' : 'From'} {fmt(38, currency, 10)}{isEs ? ' / plato' : ' / dish'}</span>
               <span className="text-[#F6A935] font-bold">3 / 4</span>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CMSProvider } from '@/lib/cmsContext';
+import { SitePrefsProvider } from '@/lib/sitePrefs';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -78,7 +79,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       </head>
       <body suppressHydrationWarning className="min-h-screen bg-[#FDFBF7] text-[#1C1917] antialiased selection:bg-[#D4AF37]/30 selection:text-[#4A2E1B] overflow-x-hidden">
         <CMSProvider>
-          {children}
+          <SitePrefsProvider>{children}</SitePrefsProvider>
         </CMSProvider>
       </body>
     </html>

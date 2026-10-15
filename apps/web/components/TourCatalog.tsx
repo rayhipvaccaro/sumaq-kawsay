@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Search, Clock, Mountain, ArrowUpRight, Compass, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
@@ -9,7 +11,7 @@ import { useCMS } from '@/lib/cmsContext';
 
 interface TourCatalogProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
   onSelectTour: (tour: Tour) => void;
   onQuickBook: (tour: Tour) => void;
 }
@@ -60,9 +62,9 @@ export function TourCatalog({
     });
 
     if (sortBy === 'price-asc') {
-      list = [...list].sort((a, b) => (currency === 'PEN' ? a.pricePEN - b.pricePEN : a.priceUSD - b.priceUSD));
+      list = [...list].sort((a, b) => a.pricePEN - b.pricePEN);
     } else if (sortBy === 'price-desc') {
-      list = [...list].sort((a, b) => (currency === 'PEN' ? b.pricePEN - a.pricePEN : b.priceUSD - a.priceUSD));
+      list = [...list].sort((a, b) => b.pricePEN - a.pricePEN);
     }
 
     return list;
@@ -201,10 +203,7 @@ export function TourCatalog({
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10"
           >
             {filteredTours.map((tour) => {
-              const priceDisplay =
-                currency === 'PEN'
-                  ? `S/ ${tour.pricePEN.toFixed(2)}`
-                  : `$ ${tour.priceUSD.toFixed(2)} USD`;
+              const priceDisplay = fmt(tour.pricePEN, currency, tour.priceUSD);
 
               const tourTitle = isEs ? tour.titleEs : tour.titleEn;
 

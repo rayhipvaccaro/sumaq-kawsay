@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import { useState } from 'react';
 import Image from 'next/image';
 import { Mountain, Clock, Compass, ArrowRight, ShieldCheck } from 'lucide-react';
@@ -7,7 +9,7 @@ import { ANCESTRAL_ZONES, AncestralZone } from '@/data/inkaLabData';
 
 interface AncestralZonesProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
   onBookZone: (zone: AncestralZone) => void;
 }
 
@@ -28,10 +30,7 @@ export function AncestralZones({ lang, currency, onBookZone }: AncestralZonesPro
 
   const currentZone = zonesWithRealPhotos.find((z) => z.id === activeZoneId) || zonesWithRealPhotos[0];
 
-  const priceDisplay =
-    currency === 'PEN'
-      ? `S/ ${currentZone.pricePEN.toFixed(2)}`
-      : `$ ${currentZone.priceUSD.toFixed(2)} USD`;
+  const priceDisplay = fmt(currentZone.pricePEN, currency, currentZone.priceUSD);
 
   return (
     <section id="zonas-ancestrales" className="py-16 sm:py-24 bg-[#181513] text-stone-100 border-b border-[#F6A935]/30 relative overflow-hidden">

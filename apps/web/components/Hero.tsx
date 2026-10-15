@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { CalendarDays, Clock, Compass, Users } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
+import { AvailabilityCalendar } from './AvailabilityCalendar';
 
 interface HeroProps {
   lang: 'es' | 'en';
-  currency?: 'PEN' | 'USD';
+  currency?: string;
   onExploreTours: () => void;
   onOpenPlanner: () => void;
   onOpenSystemGuide?: () => void;
@@ -39,16 +40,7 @@ export function Hero({ lang, onExploreTours }: HeroProps) {
   const [experienceId, setExperienceId] = useState('hosp-bungalow');
   const [guests, setGuests] = useState('2');
   const [date, setDate] = useState('');
-  const [minDate, setMinDate] = useState('');
-
-  // La fecha se calcula en el cliente para evitar diferencias servidor/cliente.
-  useEffect(() => {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() + 5);
-    setMinDate(today.toISOString().split('T')[0]);
-    setDate(start.toISOString().split('T')[0]);
-  }, []);
+  const [calOpen, setCalOpen] = useState(false);
 
   const headline = isEs
     ? generalContent.heroSubtitleEs || 'Donde la sabiduría de los Andes sigue viva.'
@@ -64,6 +56,10 @@ export function Hero({ lang, onExploreTours }: HeroProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!date) {
+      setCalOpen(true);
+      return;
+    }
     openBookingWizard({ experienceId, date, guests: Number(guests) });
   };
 
@@ -126,22 +122,36 @@ export function Hero({ lang, onExploreTours }: HeroProps) {
             </select>
           </div>
 
-          <div className="min-w-0">
+          <div className="relative min-w-0">
             <label htmlFor="hero-date" className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#442A19]">
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
               {isEs ? 'Llegada' : 'Arrival'}
             </label>
-            <input
+            <button
               id="hero-date"
-              name="arrival"
-              type="date"
-              autoComplete="off"
-              required
-              min={minDate}
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={FIELD}
-            />
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={calOpen}
+              onClick={() => setCalOpen((v) => !v)}
+              className={`${FIELD} flex items-center justify-between text-left`}
+            >
+              <span className={date ? 'font-semibold' : 'text-stone-500'}>
+                {date || (isEs ? 'Elige un día' : 'Pick a day')}
+              </span>
+              <CalendarDays className="h-4 w-4 text-[#442A19]" aria-hidden="true" />
+            </button>
+            {calOpen && (
+              <div className="absolute bottom-full left-0 right-0 z-30 mb-2 rounded-2xl border border-stone-200 bg-white p-3 shadow-2xl sm:left-auto sm:w-[22rem]">
+                <AvailabilityCalendar
+                  value={date}
+                  onChange={(d) => {
+                    setDate(d);
+                    setCalOpen(false);
+                  }}
+                  lang={lang}
+                />
+              </div>
+            )}
           </div>
 
           <div className="min-w-0">

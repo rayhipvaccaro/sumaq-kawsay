@@ -31,7 +31,7 @@ interface BookingFlowWizardProps {
   isOpen: boolean;
   onClose: () => void;
   lang?: 'es' | 'en';
-  currency?: 'PEN' | 'USD';
+  currency?: string;
 }
 
 export function BookingFlowWizard({

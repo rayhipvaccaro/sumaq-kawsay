@@ -13,7 +13,7 @@ import { useCMS } from '@/lib/cmsContext';
 
 interface HeroQuickSearchProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
 }
 
 export function HeroQuickSearch({ lang, currency }: HeroQuickSearchProps) {

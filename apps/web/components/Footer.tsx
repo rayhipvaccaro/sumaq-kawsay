@@ -71,45 +71,57 @@ export function Footer({ lang, onOpenClaimsBook, onOpenBooking }: FooterProps) {
             </h3>
             <ul className="space-y-3 text-sm sm:text-base text-stone-300 font-medium">
               <li>
-                <a href="#zonas-ancestrales" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/zonas" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{isEs ? 'Zonas Sagradas' : 'Sacred Zones'}</span>
                 </a>
               </li>
               <li>
-                <a href="#complejo" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/servicios" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{isEs ? 'Complejo & Spa' : 'Resort & Spa'}</span>
                 </a>
               </li>
               <li>
-                <a href="#experiencias" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/experiencias" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{t.nav.experiences}</span>
                 </a>
               </li>
               <li>
-                <a href="#herbario" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/herbario" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{t.nav.etnobotany}</span>
                 </a>
               </li>
               <li>
-                <a href="#cotizador" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/planificador" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{t.nav.planner}</span>
                 </a>
               </li>
               <li>
-                <a href="#estacionalidad" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/estacionalidad" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{isEs ? 'Clima & Temporadas' : 'Climate & Seasons'}</span>
                 </a>
               </li>
               <li>
-                <a href="#como-llegar" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                <a href="/como-llegar" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
                   <span className="text-[#F6A935]">•</span>
                   <span>{isEs ? 'Cómo Llegar (Km 84)' : 'How to Reach (Km 84)'}</span>
+                </a>
+              </li>
+              <li>
+                <a href="/galeria" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                  <span className="text-[#F6A935]">•</span>
+                  <span>{isEs ? 'Galería' : 'Gallery'}</span>
+                </a>
+              </li>
+              <li>
+                <a href="/prensa" className="hover:text-[#F6A935] transition-colors flex items-center gap-2">
+                  <span className="text-[#F6A935]">•</span>
+                  <span>{isEs ? 'Prensa' : 'Press'}</span>
                 </a>
               </li>
             </ul>

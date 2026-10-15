@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt } from '@/lib/money';
+
 import { useState, useMemo } from 'react';
 import { Compass, MessageCircle, Send, Plus, Minus, Check, Calendar, Users } from 'lucide-react';
 import { TRANSLATIONS } from '@/data/translations';
@@ -7,7 +9,7 @@ import { useCMS } from '@/lib/cmsContext';
 
 interface TripPlannerProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
   onBookCustom: (summary: CustomQuoteSummary) => void;
 }
 
@@ -140,7 +142,7 @@ export function TripPlanner({ lang, currency, onBookCustom }: TripPlannerProps) 
 • Viajeros: ${travelers} persona(s)
 • Experiencias: ${selectedTourTitles || 'A definir'}
 • Adicionales: ${selectedAddonTitles || 'Ninguno'}
-• Estimado: ${currency === 'PEN' ? `S/ ${formatNumber(quote.totalPEN)}` : `$ ${formatNumber(quote.totalUSD)} USD`}
+• Estimado: ${fmt(quote.totalPEN, currency, quote.totalUSD)}
 ¿Podrían confirmarme disponibilidad y afinar los detalles? ¡Gracias!`
       : `Hello Sumaq Kawsay & Inka Lab! I customized a trip using your Smart Trip Planner:
 • Duration: ${currentDurationObj?.label} (${currentDurationObj?.desc})
@@ -148,7 +150,7 @@ export function TripPlanner({ lang, currency, onBookCustom }: TripPlannerProps) 
 • Travelers: ${travelers} guest(s)
 • Experiences: ${selectedTourTitles || 'To be decided'}
 • Add-ons: ${selectedAddonTitles || 'None'}
-• Estimated Total: ${currency === 'PEN' ? `S/ ${formatNumber(quote.totalPEN)}` : `$ ${formatNumber(quote.totalUSD)} USD`}
+• Estimated Total: ${fmt(quote.totalPEN, currency, quote.totalUSD)}
 Could you please confirm dates and availability? Thank you!`;
 
     return `https://wa.me/51912189856?text=${encodeURIComponent(msg)}`;
@@ -275,10 +277,7 @@ Could you please confirm dates and availability? Thank you!`;
               <div className="space-y-2.5 sm:space-y-3">
                 {tours.map((tour) => {
                   const isSelected = selectedTours.includes(tour.id);
-                  const priceStr =
-                    currency === 'PEN'
-                      ? `+ S/ ${tour.pricePEN.toFixed(0)}`
-                      : `+ $ ${tour.priceUSD.toFixed(0)} USD`;
+                  const priceStr = `+ ${fmt(tour.pricePEN, currency, tour.priceUSD)}`;
 
                   return (
                     <div
@@ -358,10 +357,7 @@ Could you please confirm dates and availability? Thank you!`;
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
                 {t.planner.extraOptions.map((addon) => {
                   const isSelected = selectedAddons.includes(addon.id);
-                  const priceStr =
-                    currency === 'PEN'
-                      ? `+ S/ ${addon.pricePEN}`
-                      : `+ $ ${addon.priceUSD} USD`;
+                  const priceStr = `+ ${fmt(addon.pricePEN, currency, addon.priceUSD)}`;
 
                   return (
                     <button
@@ -451,13 +447,11 @@ Could you please confirm dates and availability? Thank you!`;
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-heading text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#F6A935] tabular-nums tracking-tight">
-                    {currency === 'PEN'
-                      ? `S/ ${formatNumber(quote.totalPEN)}`
-                      : `$ ${formatNumber(quote.totalUSD)} USD`}
+                    {fmt(quote.totalPEN, currency, quote.totalUSD)}
                   </span>
                 </div>
                 <span className="text-sm sm:text-base md:text-lg text-stone-200 block mt-2 font-semibold">
-                  ~ {currency === 'PEN' ? `S/ ${formatNumber(quote.perPersonPEN)}` : `$ ${formatNumber(quote.perPersonUSD)} USD`} {t.planner.perPerson}
+                  ~ {fmt(quote.perPersonPEN, currency, quote.perPersonUSD)} {t.planner.perPerson}
                 </span>
               </div>
 

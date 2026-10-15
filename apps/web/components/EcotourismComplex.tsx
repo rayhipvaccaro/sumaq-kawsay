@@ -1,12 +1,14 @@
 'use client';
 
+import { fmtNote } from '@/lib/money';
+
 import Image from 'next/image';
 import { Home, Compass, Check, ArrowRight } from 'lucide-react';
 import { ECOTOURISM_SERVICES, EcotourismService } from '@/data/inkaLabData';
 
 interface EcotourismComplexProps {
   lang: 'es' | 'en';
-  currency: 'PEN' | 'USD';
+  currency: string;
   onBookService: (service: EcotourismService) => void;
 }
 
@@ -34,7 +36,7 @@ export function EcotourismComplex({ lang, currency, onBookService }: EcotourismC
         {/* 2x2 Services Grid with Inka Lab Aesthetics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
           {ECOTOURISM_SERVICES.map((srv) => {
-            const priceNote = currency === 'PEN' ? srv.priceNotePEN : srv.priceNoteUSD;
+            const priceNote = fmtNote(srv.priceNotePEN, srv.priceNoteUSD, currency);
             const serviceTitle = isEs ? srv.titleEs : srv.titleEn;
 
             return (
