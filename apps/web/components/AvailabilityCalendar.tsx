@@ -11,6 +11,7 @@ type Props = {
   value: string;
   onChange: (date: string) => void;
   lang?: 'es' | 'en';
+  only?: string;
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -18,7 +19,7 @@ const ymd = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const todayLima = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-export function AvailabilityCalendar({ value, onChange, lang = 'es' }: Props) {
+export function AvailabilityCalendar({ value, onChange, lang = 'es', only }: Props) {
   const isEs = lang === 'es';
   const today = todayLima();
   const start = value && value >= today ? value : today;
@@ -60,7 +61,8 @@ export function AvailabilityCalendar({ value, onChange, lang = 'es' }: Props) {
     if (data === 'error') return { s: 'unknown', n: 0 };
     let open = 0;
     let full = 0;
-    for (const days of Object.values(data)) {
+      for (const [k, days] of Object.entries(data)) {
+      if (only && k !== only) continue;
       const d = days.find((x) => x.date === date);
       if (!d) continue;
       if (d.status === 'open') open++;

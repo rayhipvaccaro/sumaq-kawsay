@@ -18,7 +18,7 @@ export interface ReserveBatchInput {
   customerContact: string;
   customerDoc?: string;
   arrivalTime?: string;
-  items: { slotId: number; quantity: number }[];
+  items: { slotId: number; quantity: number; arrivalTime?: string }[];
 }
 
 export interface BookingRow {
@@ -100,6 +100,7 @@ export class BookingsService {
     }
 
     const merged = new Map<number, number>();
+    const times = new Map<number, string | null>();
     for (const it of input.items) {
       if (!Number.isInteger(it?.slotId) || it.slotId <= 0) {
         throw new BadRequestException('slotId invalido');
@@ -107,6 +108,11 @@ export class BookingsService {
       if (!Number.isInteger(it?.quantity) || it.quantity <= 0) {
         throw new BadRequestException('quantity debe ser entero mayor a 0');
       }
+      const t = it.arrivalTime?.trim() || arrivalTime;
+      if (t && !/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+        throw new BadRequestException('hora invalida');
+      }
+      if (!times.has(it.slotId)) times.set(it.slotId, t);
       merged.set(it.slotId, (merged.get(it.slotId) ?? 0) + it.quantity);
     }
     // Orden fijo por id: evita bloqueos cruzados entre reservas simultaneas
@@ -116,6 +122,7 @@ export class BookingsService {
       async (tx) => {
         const out: BookingRow[] = [];
         for (const [slotId, quantity] of ordered) {
+          const itemTime = times.get(slotId) ?? null;
           const taken = await tx.$queryRaw<{ id: number }[]>`
             UPDATE "Slot"
             SET "booked" = "booked" + ${quantity}::int
@@ -137,7 +144,7 @@ export class BookingsService {
           }
           const rows = await tx.$queryRaw<BookingRow[]>`
             INSERT INTO "Booking" ("slotId", "quantity", "customerName", "customerContact", "customerDoc", "arrivalTime")
-            VALUES (${slotId}::int, ${quantity}::int, ${customerName}::text, ${customerContact}::text, ${customerDoc}::text, ${arrivalTime}::text)
+            VALUES (${slotId}::int, ${quantity}::int, ${customerName}::text, ${customerContact}::text, ${customerDoc}::text, ${itemTime}::text)
             RETURNING *
           `;
           out.push(rows[0]);

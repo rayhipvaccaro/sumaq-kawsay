@@ -39,7 +39,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Finanzas',
       items: [
         { href: '/admin/finanzas/ventas', label: 'Libro de ventas', icon: <Receipt className={ic} />, show: can('payments.manage') },
-        { href: '/admin/finanzas', label: 'Pagos y proveedores', icon: <Wallet className={ic} />, show: can('payments.manage') },
+        { href: '/admin/finanzas/movimientos', label: 'Libro de movimientos', icon: <Receipt className={ic} />, show: can('payments.manage') },
+        { href: '/admin/finanzas/egresos', label: 'Egresos', icon: <Wallet className={ic} />, show: can('payments.manage') },
       ],
     },
     {

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
+import { ItemWhen } from './ItemWhen';
 import {
   X,
   Bed,
@@ -26,11 +27,6 @@ import {
 } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
 import { StockItem, ReservationItemSelection } from '@/data/businessData';
-
-const HOURS = Array.from({ length: 21 }, (_, i) => {
-  const m = 7 * 60 + i * 30;
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-});
 
 interface BookingFlowWizardProps {
   isOpen: boolean;
@@ -66,7 +62,10 @@ export function BookingFlowWizard({
   });
   const [nightsCount, setNightsCount] = useState<number>(2);
   const [guestsCount, setGuestsCount] = useState<number>(2);
-  const [arrivalTime, setArrivalTime] = useState('09:00');
+  const arrivalTime = '09:00'; // hora por defecto de cada tarjeta
+  const [itemWhen, setItemWhen] = useState<Record<string, { date: string; time: string }>>({});
+  const [itemFree, setItemFree] = useState<Record<string, number | null>>({});
+  const whenOf = (id: string) => itemWhen[id] ?? { date: travelDate, time: arrivalTime };
 
   // Selections
   // Step 1: Hospedaje (1 item selected or null for only day activities)
@@ -303,43 +302,15 @@ export function BookingFlowWizard({
     dayCupos === null || dayCupos === 'error'
       ? true
       : Object.values(dayCupos).some((v) => (v ?? 0) > 0);
-  const actProblems = Object.entries(selectedActivities).filter(([id, qty]) => {
+    const actProblems = Object.entries(selectedActivities).filter(([id, qty]) => {
     if (dayCupos === null || dayCupos === 'error' || !(id in dayCupos)) return false;
-    return (dayCupos[id] ?? 0) < qty;
+    const free = id in itemFree ? itemFree[id] : dayCupos[id];
+    return (free ?? 0) < qty;
   });
   const blocked = (step === 1 && !dateOk) || (step === 2 && actProblems.length > 0);
 
   if (!isOpen) return null;
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const whenBar = (
-    <div className="flex flex-wrap items-end gap-4 p-3 rounded-xl border border-stone-300 bg-stone-50">
-      <label className="text-sm font-semibold text-stone-800">
-        {isEs ? 'Fecha' : 'Date'}
-        <input
-          type="date"
-          min={todayStr}
-          value={travelDate}
-          onChange={(e) => e.target.value && setTravelDate(e.target.value)}
-          className="block mt-1 px-3 py-2 rounded-lg border border-stone-400 bg-white text-sm"
-        />
-      </label>
-      <label className="text-sm font-semibold text-stone-800">
-        {isEs ? 'Hora de llegada' : 'Arrival time'}
-        <select
-          value={arrivalTime}
-          onChange={(e) => setArrivalTime(e.target.value)}
-          className="block mt-1 px-3 py-2 rounded-lg border border-stone-400 bg-white text-sm"
-        >
-          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
-        </select>
-      </label>
-      <p className="text-xs text-stone-600">
-        {isEs ? 'El cupo es por día. La hora nos ayuda a esperarte.' : 'Capacity is per day. The time helps us prepare.'}
-      </p>
-    </div>
-  );
-
+  
   // Toggle helpers
   const toggleActivity = (id: string) => {
     setSelectedActivities((prev) => {
@@ -401,7 +372,7 @@ export function BookingFlowWizard({
 
     setIsSubmitting(true);
     try {
-      const nest = await fetch('/api/booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: travelDate, arrivalTime, customerDoc, customerName, customerContact: `${customerEmail} | ${customerPhone}`, items: calculation.actSelections.map((a) => ({ id: a.itemId, name: a.name, quantity: a.quantity })) }) }).then((r) => r.json()).catch(() => ({ ok: false, message: isEs ? 'Sin conexion con el servidor de reservas.' : 'Cannot reach the booking server.' }));
+            const nest = await fetch('/api/booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: travelDate, arrivalTime, customerDoc, customerName, customerContact: `${customerEmail} | ${customerPhone}`, items: [...calculation.actSelections, ...calculation.extraSelections].map((a) => ({ id: a.itemId, name: a.name, quantity: a.quantity, date: whenOf(a.itemId).date, arrivalTime: whenOf(a.itemId).time })) }) }).then((r) => r.json()).catch(() => ({ ok: false, message: isEs ? 'Sin conexion con el servidor de reservas.' : 'Cannot reach the booking server.' }));
       if (!nest.ok) { alert(nest.message); return; }
       const reservationId = await createReservation({
         customerName,
@@ -894,18 +865,19 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     </p>
                   </div>
 
-                  {whenBar}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {activitiesStock.map((act) => {
                       const count = selectedActivities[act.id] || 0;
                       const isSelected = count > 0;
                       const linked =
                         dayCupos !== null && dayCupos !== 'error' && act.id in dayCupos;
                       const realFree = linked
-                        ? (dayCupos as Record<string, number | null>)[act.id]
+                        ? isSelected && act.id in itemFree
+                          ? itemFree[act.id]
+                          : (dayCupos as Record<string, number | null>)[act.id]
                         : undefined;
                       const available = linked ? (realFree ?? 0) : act.capacityMax - act.booked;
-                      const isSoldOut = available <= 0;
+                      const isSoldOut = !linked && available <= 0;
                       const noSchedule = linked && realFree === null;
                       const overLimit = isSelected && linked && count > available;
 
@@ -953,6 +925,18 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                                   ? `Solo quedan ${available} cupos ese día. Baja las personas o cambia la fecha.`
                                   : `Only ${available} spots left that day. Lower the guests or change the date.`}
                               </p>
+                            )}
+                            {isSelected && linked && (
+                              <ItemWhen
+                                id={act.id}
+                                date={whenOf(act.id).date}
+                                time={whenOf(act.id).time}
+                                lang={lang}
+                                onChange={(w) => setItemWhen((p) => ({ ...p, [act.id]: w }))}
+                                onFree={(id, free) =>
+                                  setItemFree((p) => (p[id] === free ? p : { ...p, [id]: free }))
+                                }
+                              />
                             )}
                           </div>
 
@@ -1102,11 +1086,12 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     </p>
                   </div>
 
-                  {whenBar}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {extrasStock.map((extra) => {
                       const count = selectedExtras[extra.id] || 0;
                       const isSelected = count > 0;
+                      const linked =
+                        dayCupos !== null && dayCupos !== 'error' && extra.id in dayCupos;
 
                       return (
                         <div
@@ -1127,6 +1112,18 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                             <p className="text-xs text-stone-600 mt-2 line-clamp-3">
                               {extra.description}
                             </p>
+                            {isSelected && linked && (
+                              <ItemWhen
+                                id={extra.id}
+                                date={whenOf(extra.id).date}
+                                time={whenOf(extra.id).time}
+                                lang={lang}
+                                onChange={(w) => setItemWhen((p) => ({ ...p, [extra.id]: w }))}
+                                onFree={(id, free) =>
+                                  setItemFree((p) => (p[id] === free ? p : { ...p, [id]: free }))
+                                }
+                              />
+                            )}
                           </div>
 
                           <div className="pt-3 border-t border-stone-100 mt-3 flex items-center justify-between">

@@ -8,10 +8,18 @@ const NEST_ACTIVITY: Record<string, number> = {
   'act-willka-unu': 6,
   'act-etnobotanica': 7,
   'act-inti-punku': 8,
+  'extra-transporte-cusco': 9,
+  'extra-astrofoto': 11,
 };
 
 type Slot = { id: number; startsAt: string; capacity: number; booked: number };
-type Item = { id: string; name?: string; quantity: number };
+type Item = {
+  id: string;
+  name?: string;
+  quantity: number;
+  date?: string;
+  arrivalTime?: string;
+};
 
 const limaDay = (iso: string) =>
   new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
@@ -39,7 +47,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 1) Revisar cupo de todo ANTES de reservar nada
-  const plan: { name: string; slotId: number; quantity: number }[] = [];
+  const plan: {
+    name: string;
+    slotId: number;
+    quantity: number;
+    arrivalTime: string;
+  }[] = [];
   for (const it of items) {
     const activityId = NEST_ACTIVITY[it.id];
     if (!activityId) continue; // sin enlace en Nest: queda solo como cotizacion
@@ -59,16 +72,24 @@ export async function POST(req: NextRequest) {
       return bad('Servidor de reservas no disponible', 502);
     }
     const label = it.name ?? it.id;
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(String(it.date ?? ''))
+      ? String(it.date)
+      : date;
     const slot = slots.find(
-      (s) => limaDay(s.startsAt) === date && s.capacity - s.booked >= quantity,
+      (s) => limaDay(s.startsAt) === day && s.capacity - s.booked >= quantity,
     );
     if (!slot) {
       return bad(
-        `Sin cupo para "${label}" el ${date}. Elige otra fecha o menos personas.`,
+        `Sin cupo para "${label}" el ${day}. Elige otra fecha o menos personas.`,
         409,
       );
     }
-    plan.push({ name: label, slotId: slot.id, quantity });
+    plan.push({
+      name: label,
+      slotId: slot.id,
+      quantity,
+      arrivalTime: String(it.arrivalTime ?? '').trim() || arrivalTime,
+    });
   }
 
   // 2) Reservar todo junto: o entra todo, o no entra nada
@@ -84,7 +105,11 @@ export async function POST(req: NextRequest) {
         customerContact,
         customerDoc: customerDoc || undefined,
         arrivalTime: arrivalTime || undefined,
-        items: plan.map((p) => ({ slotId: p.slotId, quantity: p.quantity })),
+        items: plan.map((p) => ({
+          slotId: p.slotId,
+          quantity: p.quantity,
+          arrivalTime: p.arrivalTime || undefined,
+        })),
       }),
       cache: 'no-store',
     });

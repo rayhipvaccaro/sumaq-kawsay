@@ -8,6 +8,8 @@ const NEST_ACTIVITY: Record<string, number> = {
   'act-willka-unu': 6,
   'act-etnobotanica': 7,
   'act-inti-punku': 8,
+  'extra-transporte-cusco': 9,
+  'extra-astrofoto': 11,
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;

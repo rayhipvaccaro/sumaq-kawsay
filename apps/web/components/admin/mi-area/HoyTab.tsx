@@ -217,6 +217,18 @@ export function HoyTab({ label, board, date, setDate, actId, run }: {
             </>
           )}
         </div>
+                <div className="mt-3">
+          <p className="text-xs font-semibold text-stone-700 mb-1">Quién reservó y a qué hora llega</p>
+          <div className="flex flex-wrap gap-2">
+            {board.pending.map((p) => (
+              <span key={p.bookingId} className="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-sm">
+                <b>{p.customerName}</b> · {p.pending} pers. ·{' '}
+                <span className="font-bold text-blue-900">{p.arrivalTime ? `llega ${p.arrivalTime}` : 'sin hora'}</span>
+              </span>
+            ))}
+            {board.pending.length === 0 && <span className="text-sm text-stone-600">Sin reservas por atender este día.</span>}
+          </div>
+        </div>
         {board.capacity > 0 && board.slotCapacity === 0 && (
           <p className="text-xs text-amber-800">Este día aún no está abierto en el calendario. Ábrelo en la pestaña Recursos.</p>
         )}
