@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, Calendar, Download } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
 import { useSitePrefs } from '@/lib/sitePrefs';
 import { useSiteActions } from '@/components/site/SiteShell';
@@ -155,7 +155,7 @@ export function ServiciosView() {
   const { bookService } = useSiteActions();
   return (
     <>
-      <PageIntro eyebrow="Inka Lab" title={t(isEs, 'Servicios y tarifas', 'Services & rates')} subtitle={t(isEs, 'Dormir, comer, relajarte y pasar el día en el complejo.', 'Sleep, dine, unwind and spend the day at the complex.')} />
+      <PageIntro eyebrow="Inka Lab" title={t(isEs, 'Servicios y tarifas', 'Services & rates')} subtitle={t(isEs, 'Dormir, comer, relajarte y pasar el día en el complejo.', 'Sleep, dine, unwind and spend the day at the complex.')}><a href="/triptico?auto=1" target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#F6A935] px-5 py-3 text-sm font-extrabold text-[#181513] hover:bg-[#D48B1E]"><Download className="h-4 w-4" aria-hidden="true" />{t(isEs, 'Descargar tríptico (PDF)', 'Download brochure (PDF)')}</a></PageIntro>
       <EcotourismComplex lang={lang} currency={currency} onBookService={bookService} />
     </>
   );

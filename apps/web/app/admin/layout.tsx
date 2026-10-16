@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Contenido del sitio',
       items: [
         { href: '/admin/cms/tours', label: 'Paquetes y experiencias', icon: <Package className={ic} />, show: can('cms.edit') },
-        { href: '/admin/cms/content', label: 'Textos y fotos del sitio', icon: <FileText className={ic} />, show: can('cms.edit') },
+        { href: '/admin/datos', label: 'Temporadas, zonas y servicios', icon: <MapPin className={ic} />, show: can('cms.edit') }, { href: '/admin/paginas', label: 'Páginas del sitio', icon: <FileText className={ic} />, show: can('cms.edit') }, { href: '/admin/cms/content', label: 'Textos y fotos del sitio', icon: <FileText className={ic} />, show: can('cms.edit') },
         { href: '/admin/cms/testimonials', label: 'Testimonios', icon: <MessageSquareQuote className={ic} />, show: can('cms.edit') },
       ],
     },

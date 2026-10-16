@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Calendar, ChevronDown, Clock, DollarSign, Menu, User, X } from 'lucide-react';
 import { homeFor, isStaff } from '@/lib/permissions';
 import { useCMS } from '@/lib/cmsContext';
-import { useSitePrefs } from '@/lib/sitePrefs';
+import { useSitePrefs } from '@/lib/sitePrefs'; import { SITE_LANGS } from '@/lib/languages';
 import { DEFAULT_RATES, POPULAR_CURRENCIES, currencyName } from '@/data/currencies';
 
 interface Item {
@@ -63,7 +63,7 @@ const ALL_CURRENCIES = Object.keys(DEFAULT_RATES).sort();
 const OTHER_CURRENCIES = ALL_CURRENCIES.filter((c) => !POPULAR_CURRENCIES.includes(c));
 
 export function SiteHeader() {
-  const { lang, setLang, currency, setCurrency } = useSitePrefs();
+  const { lang, uiLang, setLang, currency, setCurrency } = useSitePrefs();
   const { openBookingWizard, openOrderTracker, sessionUser } = useCMS();
   const isEs = lang === 'es';
   // Cuenta: sin sesion -> Ingresar; turista/agencia -> Mis reservas; personal -> Panel.
@@ -159,25 +159,16 @@ export function SiteHeader() {
   );
 
   const langToggle = (
-    <div
-      role="group"
+    <select
       aria-label={isEs ? 'Idioma' : 'Language'}
-      className="flex overflow-hidden rounded-xl border border-stone-700 bg-[#221E1B] text-xs font-bold"
+      value={uiLang}
+      onChange={(e) => setLang(e.target.value)}
+      className="rounded-xl border border-stone-700 bg-[#221E1B] px-2.5 py-2 text-xs font-bold text-stone-100"
     >
-      {(['es', 'en'] as const).map((l) => (
-        <button
-          key={l}
-          type="button"
-          onClick={() => setLang(l)}
-          aria-pressed={lang === l}
-          className={`px-2.5 py-2 uppercase transition-colors ${
-            lang === l ? 'bg-[#F6A935] text-[#181513]' : 'text-stone-200 hover:text-[#F6A935]'
-          }`}
-        >
-          {l}
-        </button>
+      {SITE_LANGS.map((l) => (
+        <option key={l.code} value={l.code}>{l.label}</option>
       ))}
-    </div>
+    </select>
   );
 
   return (

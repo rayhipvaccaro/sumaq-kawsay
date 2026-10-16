@@ -5,7 +5,7 @@ import { fmt } from '@/lib/money';
 import { useState } from 'react';
 import Image from 'next/image';
 import { Mountain, Clock, Compass, ArrowRight, ShieldCheck } from 'lucide-react';
-import { ANCESTRAL_ZONES, AncestralZone } from '@/data/inkaLabData';
+import type { AncestralZone } from '@/data/inkaLabData'; import { useSiteData } from '@/lib/siteData';
 
 interface AncestralZonesProps {
   lang: 'es' | 'en';
@@ -13,7 +13,7 @@ interface AncestralZonesProps {
   onBookZone: (zone: AncestralZone) => void;
 }
 
-export function AncestralZones({ lang, currency, onBookZone }: AncestralZonesProps) {
+export function AncestralZones({ lang, currency, onBookZone }: AncestralZonesProps) { const { zones: ANCESTRAL_ZONES } = useSiteData();
   const [activeZoneId, setActiveZoneId] = useState<string>('hanan-pacha');
   const isEs = lang === 'es';
 

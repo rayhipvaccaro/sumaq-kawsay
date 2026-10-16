@@ -157,7 +157,7 @@ export function Footer({ lang, onOpenClaimsBook, onOpenBooking }: FooterProps) {
                   info@sumaqkawsay.com
                 </a>
               </li>
-              <li className="pt-3">
+              <li className="pt-3"><a href="/triptico?auto=1" target="_blank" rel="noopener noreferrer" className="mb-3 block w-full rounded-xl border border-[#F6A935] px-4 py-3 text-center text-sm font-bold text-[#F6A935] hover:bg-[#F6A935] hover:text-[#181513]">{isEs ? 'Descargar tríptico' : 'Download brochure'}</a>
                 <button
                   onClick={onOpenBooking}
                   className="w-full py-3.5 px-4 text-sm sm:text-base font-bold text-[#181513] bg-[#F6A935] hover:bg-[#D48B1E] rounded-xl transition-all shadow-md border border-[#FDE8B5]"

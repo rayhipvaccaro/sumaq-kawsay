@@ -1,12 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { CURRENCY_KEY, LANG_KEY, type SiteLang } from '@/lib/languages';
+import { CURRENCY_KEY, LANG_KEY, SITE_LANGS, type SiteLang } from '@/lib/languages';
 import { hasRate, setMoneyRates } from '@/lib/money';
 
 interface SitePrefs {
   lang: SiteLang;
-  setLang: (l: SiteLang) => void;
+  setLang: (l: string) => void;  uiLang: string;
   currency: string;
   setCurrency: (c: string) => void;
   /** Sube cuando llegan tipos de cambio nuevos, para que los precios se vuelvan a dibujar. */
@@ -50,22 +50,22 @@ function subscribe(cb: () => void) {
   };
 }
 
-const snapLang = (): SiteLang => (readPref(LANG_KEY) === 'en' ? 'en' : 'es');
+const snapUi = (): string => { const c = readPref(LANG_KEY); return c && SITE_LANGS.some((x) => x.code === c) ? c : 'es'; }; const snapLang = (): SiteLang => (snapUi() === 'en' ? 'en' : 'es');
 const snapCurrency = (): string => {
   const c = readPref(CURRENCY_KEY);
   return c && /^[A-Z]{3}$/.test(c) ? c : 'PEN';
 };
 
 export function SitePrefsProvider({ children }: { children: ReactNode }) {
-  const lang = useSyncExternalStore(subscribe, snapLang, () => 'es' as SiteLang);
+  const lang = useSyncExternalStore(subscribe, snapLang, () => 'es' as SiteLang); const uiLang = useSyncExternalStore(subscribe, snapUi, () => 'es');
   const currency = useSyncExternalStore(subscribe, snapCurrency, () => 'PEN');
   const [ratesRev, setRatesRev] = useState(0);
   const [fxSource, setFxSource] = useState<'live' | 'default'>('default');
   const [fxUpdatedAt, setFxUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    document.documentElement.lang = uiLang; document.documentElement.dir = ['ar', 'he', 'fa'].includes(uiLang) ? 'rtl' : 'ltr';
+  }, [uiLang]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,12 +86,12 @@ export function SitePrefsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const setLang = useCallback((l: SiteLang) => writePref(LANG_KEY, l), []);
+  const setLang = useCallback((l: string) => writePref(LANG_KEY, l), []);
   const setCurrency = useCallback((c: string) => writePref(CURRENCY_KEY, hasRate(c) ? c : 'PEN'), []);
 
   const value = useMemo(
-    () => ({ lang, setLang, currency, setCurrency, ratesRev, fxSource, fxUpdatedAt }),
-    [lang, setLang, currency, setCurrency, ratesRev, fxSource, fxUpdatedAt],
+    () => ({ lang, uiLang, setLang, currency, setCurrency, ratesRev, fxSource, fxUpdatedAt }),
+    [lang, uiLang, setLang, currency, setCurrency, ratesRev, fxSource, fxUpdatedAt],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

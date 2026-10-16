@@ -6,7 +6,7 @@ import { mergeReservations, mutateCms, readCms } from '@/lib/orderStore';
 
 // Campos "internos" (datos personales y de negocio): solo los ve quien tiene el permiso.
 // Tours, textos y testimonios son publicos.
-const PUBLIC_FIELDS = ['tours', 'generalContent', 'testimonials'];
+const PUBLIC_FIELDS = ['tours', 'generalContent', 	'testimonials', 'pages', 'siteData'];
 
 export async function GET(req: NextRequest) {
   const data = readCms() as unknown as Record<string, unknown>;

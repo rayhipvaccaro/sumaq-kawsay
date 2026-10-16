@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { AlertTriangle, Eye, EyeOff, UserRound } from 'lucide-react';
 import { homeFor } from '@/lib/permissions';
 
@@ -60,17 +59,19 @@ export function IngresarView() {
 
   // Viene de una reserva: correo ya escrito y aviso de como crear la clave.
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    const e = q.get('email');
-    const reserva = q.get('reserva');
-    if (e) setEmail(e);
-    if (reserva) {
-      setBanner(
-        q.get('nueva')
-          ? `¡Reserva ${reserva} recibida! Creamos tu cuenta con ${e}. Escribe como clave tu número de documento (DNI o pasaporte) y enseguida crearás tu contraseña.`
-          : `¡Reserva ${reserva} recibida! Entra con tu correo y tu clave para verla en Mis reservas.`,
-      );
-    }
+    queueMicrotask(() => {
+      const q = new URLSearchParams(window.location.search);
+      const e = q.get('email');
+      const reserva = q.get('reserva');
+      if (e) setEmail(e);
+      if (reserva) {
+        setBanner(
+          q.get('nueva')
+            ? `¡Reserva ${reserva} recibida! Creamos tu cuenta con ${e}. Escribe como clave tu número de documento (DNI o pasaporte) y enseguida crearás tu contraseña.`
+            : `¡Reserva ${reserva} recibida! Entra con tu correo y tu clave para verla en Mis reservas.`,
+        );
+      }
+    });
   }, []);
 
   const finish = (user: { isAdmin: boolean; permissions?: string[]; role?: string }) => {
@@ -210,13 +211,6 @@ export function IngresarView() {
             <span>{error}</span>
           </p>
         )}
-
-        <p className="border-t border-stone-200 pt-3 text-center text-xs text-stone-500">
-          ¿Eres del equipo?{' '}
-          <Link href="/login" className="font-bold text-[#8A5A00] underline">
-            Acceso al panel
-          </Link>
-        </p>
       </div>
     </section>
   );

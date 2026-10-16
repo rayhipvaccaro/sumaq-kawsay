@@ -1,13 +1,13 @@
 'use client';
 
 import { MapPin, Navigation, ExternalLink, Train, Car } from 'lucide-react';
-import { HOW_TO_REACH } from '@/data/inkaLabData';
+import { useSiteData } from '@/lib/siteData';
 
 interface RouteAccessProps {
   lang: 'es' | 'en';
 }
 
-export function RouteAccess({ lang }: RouteAccessProps) {
+export function RouteAccess({ lang }: RouteAccessProps) { const { reach: HOW_TO_REACH } = useSiteData();
   const isEs = lang === 'es';
 
   return (

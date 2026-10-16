@@ -103,7 +103,9 @@ interface CMSContextType {
   addTour: (tour: Tour) => Promise<boolean>;
   updateTour: (tour: Tour) => Promise<boolean>;
   deleteTour: (id: string) => Promise<boolean>;
-  updateGeneralContent: (content: Partial<GeneralContent>) => Promise<boolean>;
+  updateGeneralContent: (content: Partial<GeneralContent>) => Promise<boolean>; 
+  updatePages: (pages: Record<string, import('@/data/pagesContent').PageContent>) => Promise<boolean>; 
+  updateSiteData: (siteData: import('@/lib/siteData').SiteData) => Promise<boolean>;
   addTestimonial: (item: TestimonialItem) => Promise<boolean>;
   updateTestimonial: (item: TestimonialItem) => Promise<boolean>;
   deleteTestimonial: (id: string) => Promise<boolean>;
@@ -371,7 +373,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   };
 
   // General Content Update
-  const updateGeneralContent = async (content: Partial<GeneralContent>): Promise<boolean> => {
+  const updateSiteData = async (siteData: import('@/lib/siteData').SiteData): Promise<boolean> => persistChanges({ ...data, siteData }); const updatePages = async (pages: Record<string, import('@/data/pagesContent').PageContent>): Promise<boolean> => persistChanges({ ...data, pages }); const updateGeneralContent = async (content: Partial<GeneralContent>): Promise<boolean> => {
     const updatedGeneral = { ...data.generalContent, ...content };
     return persistChanges({ ...data, generalContent: updatedGeneral });
   };
@@ -802,7 +804,9 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         addTour,
         updateTour,
         deleteTour,
-        updateGeneralContent,
+        updateGeneralContent, 
+        updatePages, 
+        updateSiteData,
         addTestimonial,
         updateTestimonial,
         deleteTestimonial,

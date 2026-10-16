@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { Sun, CloudRain, Sunrise, CheckCircle, ShieldCheck } from 'lucide-react';
-import { SEASONS_DATA, SeasonInfo } from '@/data/inkaLabData';
+import type { SeasonInfo } from '@/data/inkaLabData'; import { useSiteData } from '@/lib/siteData';
 
 interface SeasonalityGuideProps {
   lang: 'es' | 'en';
 }
 
-export function SeasonalityGuide({ lang }: SeasonalityGuideProps) {
+export function SeasonalityGuide({ lang }: SeasonalityGuideProps) { const { seasons: SEASONS_DATA } = useSiteData();
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>('seca');
   const isEs = lang === 'es';
 

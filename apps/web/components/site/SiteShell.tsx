@@ -13,7 +13,10 @@ import { BusinessPortalModal } from '@/components/BusinessPortalModal';
 import { BookingFlowWizard } from '@/components/BookingFlowWizard';
 import { OrderTrackerModal } from '@/components/OrderTrackerModal';
 import { ManualModal } from '@/components/ManualModal';
-import { QuickActionDock } from '@/components/QuickActionDock';
+import { QuickActionDock } from '@/components/QuickActionDock'; 
+import { AutoTranslate } from '@/components/AutoTranslate'; 
+import { ChatBot } from '@/components/ChatBot'; 
+import { PageExtras } from '@/components/site/PageExtras';
 import { SystemGuideModal } from '@/components/SystemGuideModal';
 import type { CustomQuoteSummary } from '@/components/TripPlanner';
 import { useCMS } from '@/lib/cmsContext';
@@ -162,7 +165,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         <SiteHeader />
 
         <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
-          {children}
+          	{children}<PageExtras />
         </main>
 
         <Footer
@@ -223,7 +226,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           lang={lang}
         />
         <ManualModal isOpen={isManualModalOpen} onClose={closeManualModal} initialTab={manualActiveTab} />
-        <QuickActionDock lang={lang} onOpenSystemGuide={actions.openSystemGuide} />
+        <AutoTranslate /><ChatBot /><QuickActionDock lang={lang} onOpenSystemGuide={actions.openSystemGuide} />
         <SystemGuideModal isOpen={isSystemGuideOpen} onClose={() => setIsSystemGuideOpen(false)} lang={lang} />
       </div>
     </ActionsCtx.Provider>

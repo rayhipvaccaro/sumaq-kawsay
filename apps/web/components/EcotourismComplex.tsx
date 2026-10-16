@@ -4,7 +4,8 @@ import { fmtNote } from '@/lib/money';
 
 import Image from 'next/image';
 import { Home, Compass, Check, ArrowRight } from 'lucide-react';
-import { ECOTOURISM_SERVICES, EcotourismService } from '@/data/inkaLabData';
+import type { EcotourismService } from '@/data/inkaLabData'; 
+import { useSiteData } from '@/lib/siteData';
 
 interface EcotourismComplexProps {
   lang: 'es' | 'en';
@@ -12,7 +13,7 @@ interface EcotourismComplexProps {
   onBookService: (service: EcotourismService) => void;
 }
 
-export function EcotourismComplex({ lang, currency, onBookService }: EcotourismComplexProps) {
+export function EcotourismComplex({ lang, currency, onBookService }: EcotourismComplexProps) { const { services: ECOTOURISM_SERVICES } = useSiteData();
   const isEs = lang === 'es';
 
   return (
@@ -123,7 +124,7 @@ export function EcotourismComplex({ lang, currency, onBookService }: EcotourismC
             </p>
           </div>
           <button
-            onClick={() => onBookService(ECOTOURISM_SERVICES[3])}
+            onClick={() => onBookService(ECOTOURISM_SERVICES.find((s) => s.id === 'day-pass-inkalab') ?? ECOTOURISM_SERVICES[0])}
             className="shrink-0 px-9 py-4 text-base sm:text-lg font-bold text-[#442A19] bg-[#F6A935] hover:bg-[#9E2021] hover:text-white rounded-xl shadow-xl transition-all border border-[#FDE8B5] transform hover:-translate-y-0.5 whitespace-nowrap"
           >
             {isEs ? 'Reservar Day Pass' : 'Book Day Pass'}

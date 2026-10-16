@@ -33,7 +33,8 @@ export function isStaff(user: PermUser | null | undefined): boolean {
 /** Campos del CMS y el permiso que hace falta para verlos/editarlos. */
 export const CMS_FIELD_PERMS: Record<string, string[]> = {
   tours: ['cms.edit'],
-  generalContent: ['cms.edit'],
+  generalContent: ['cms.edit'], 
+  pages: ['cms.edit'], siteData: ['cms.edit'],
   testimonials: ['cms.edit'],
   contacts: ['leads.view'],
   reservations: ['orders.view', 'payments.manage'],
@@ -63,6 +64,8 @@ export function adminPathAllowed(path: string, user: PermUser | null | undefined
   if (path.startsWith('/admin/clientes')) return hasPerm(user, 'customers.reset');
   if (path.startsWith('/admin/finanzas')) return hasPerm(user, 'payments.manage');
   if (path.startsWith('/admin/reservas')) return hasAny(user, ['orders.view', 'payments.manage']);
+  if (path.startsWith('/admin/paginas')) return hasPerm(user, 'cms.edit'); 
+  if (path.startsWith('/admin/datos')) return hasPerm(user, 'cms.edit');
   if (path.startsWith('/admin/cms/contacts')) return hasPerm(user, 'leads.view');
   if (path.startsWith('/admin/cms/settings')) return Boolean(user.isAdmin);
   if (path.startsWith('/admin/cms')) return hasPerm(user, 'cms.edit');

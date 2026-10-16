@@ -60,7 +60,7 @@ export interface GeneralContent {
   sponsors: Sponsor[];
 }
 
-export interface CMSData {
+export interface CMSData { pages?: Record<string, import('./pagesContent').PageContent>; siteData?: import('@/lib/siteData').SiteData;
   tours: Tour[];
   generalContent: GeneralContent;
   testimonials: TestimonialItem[];
@@ -71,7 +71,7 @@ export interface CMSData {
   accountingEntries: AccountingTransaction[];
 }
 
-export const DEFAULT_CMS_DATA: CMSData = {
+export const DEFAULT_CMS_DATA: CMSData = { pages: {},
   tours: TOURS_DATA,
   stockItems: INITIAL_STOCK_ITEMS,
   providers: INITIAL_PROVIDERS,
