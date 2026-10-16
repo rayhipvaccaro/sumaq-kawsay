@@ -83,6 +83,14 @@ export interface Reservation {
   customerEmail: string;
   customerPhone: string;
   customerDniOrPassport?: string;
+  customerDocType?: 'DNI' | 'PASAPORTE';
+  customerUserId?: number; // cuenta del turista
+  agencyUserId?: number; // agencia que vendio
+  agencyName?: string;
+  agencyDiscountPct?: number;
+  listTotalPEN?: number; // total sin descuento de agencia
+  listTotalUSD?: number;
+  passengers?: { name: string; doc?: string }[];
   travelDate: string;
   endDate?: string;
   guestsCount: number;

@@ -2,6 +2,7 @@ export interface PermUser {
   isAdmin: boolean;
   permissions?: string[];
   mustChangePassword?: boolean;
+  role?: string;
 }
 
 export const STAFF_PERMS = [
@@ -12,6 +13,7 @@ export const STAFF_PERMS = [
   'fx.edit',
   'agencies.manage',
   'area.manage',
+  'customers.reset',
 ];
 
 export function hasPerm(user: PermUser | null | undefined, perm: string): boolean {
@@ -44,6 +46,7 @@ export const CMS_FIELD_PERMS: Record<string, string[]> = {
 export function homeFor(user: PermUser | null | undefined): string {
   if (!user) return '/login';
   if (user.isAdmin) return '/admin';
+  if (user.role === 'Agencia' || user.role === 'Turista') return '/mis-reservas';
   if (hasPerm(user, 'area.manage')) return '/admin/mi-area';
   if (hasPerm(user, 'payments.manage')) return '/admin/finanzas/ventas';
   if (hasAny(user, ['orders.view', 'agencies.manage'])) return '/admin/reservas';
@@ -57,6 +60,7 @@ export function adminPathAllowed(path: string, user: PermUser | null | undefined
   if (!user || user.mustChangePassword) return false;
   if (path.startsWith('/admin/usuarios') || path.startsWith('/admin/operacion')) return Boolean(user.isAdmin);
   if (path.startsWith('/admin/mi-area')) return hasPerm(user, 'area.manage');
+  if (path.startsWith('/admin/clientes')) return hasPerm(user, 'customers.reset');
   if (path.startsWith('/admin/finanzas')) return hasPerm(user, 'payments.manage');
   if (path.startsWith('/admin/reservas')) return hasAny(user, ['orders.view', 'payments.manage']);
   if (path.startsWith('/admin/cms/contacts')) return hasPerm(user, 'leads.view');

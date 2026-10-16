@@ -37,6 +37,9 @@ export interface SessionInfo {
   areaId?: number | null;
   permissions: string[];
   mustChangePassword?: boolean;
+  discountPct?: number;
+  docType?: string | null;
+  docNumber?: string | null;
 }
 
 export interface BookingPreset {
@@ -445,6 +448,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
 
     try {
       localStorage.setItem(`sq_pay_${reservationId}`, accessToken);
+      localStorage.setItem(`sq_acct_${reservationId}`, String(created.account ?? ''));
     } catch {
       // ignore
     }

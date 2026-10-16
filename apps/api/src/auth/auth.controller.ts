@@ -47,6 +47,10 @@ export class AuthController {
       isAdmin: u.isAdmin,
       area: u.area,
       areaId: u.areaId,
+      fullName: u.fullName,
+      discountPct: u.discountPct ?? 0,
+      docType: u.docType ?? null,
+      docNumber: u.docNumber ?? null,
       permissions: u.permissions,
       mustChangePassword: u.mustChange,
     };

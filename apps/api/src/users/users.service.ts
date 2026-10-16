@@ -24,6 +24,9 @@ const publicSelect = {
   area: { select: { id: true, name: true } },
   active: true,
   mustChangePassword: true,
+  discountPct: true,
+  docType: true,
+  docNumber: true,
   lockedUntil: true,
   lastLoginAt: true,
   createdAt: true,
@@ -35,6 +38,9 @@ export interface CreateUserInput {
   fullName: string;
   roleId: number;
   areaId?: number;
+  discountPct?: number;
+  docType?: string;
+  docNumber?: string;
 }
 
 export interface CreateRoleInput {
@@ -65,9 +71,10 @@ export class UsersService {
     const fullName = (input.fullName ?? '').trim();
     const areaId = input.areaId ?? null;
 
-    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username) && username.length <= 160;
+    if (!isEmail && !/^[a-z0-9._-]{3,30}$/.test(username)) {
       throw new BadRequestException(
-        'usuario: 3 a 30 caracteres, solo letras, numeros, punto, guion',
+        'usuario: un correo, o 3 a 30 caracteres (letras, numeros, punto, guion)',
       );
     }
     if (!fullName) throw new BadRequestException('fullName es obligatorio');
@@ -90,10 +97,21 @@ export class UsersService {
       if (!area) throw new NotFoundException('Area no existe');
     }
 
+    const discountPct = Math.round(Number(input.discountPct ?? 0));
+    if (!Number.isFinite(discountPct) || discountPct < 0 || discountPct > 100) {
+      throw new BadRequestException('descuento: de 0 a 100');
+    }
+    if (discountPct > 0 && !role.permissions.includes('sales.own')) {
+      throw new BadRequestException('Solo el rol de agencia lleva descuento');
+    }
+
     const temp = tempPassword();
     try {
       const user = await this.prisma.user.create({
         data: {
+          discountPct,
+          docType: input.docType?.trim().toUpperCase() || null,
+          docNumber: input.docNumber?.trim().toUpperCase() || null,
           username,
           fullName,
           areaId: role.permissions.includes('area.manage') ? areaId : null,
@@ -129,6 +147,28 @@ export class UsersService {
     });
     await this.audit(actorId, 'PASSWORD_RESET', ip, `usuario: ${target.username}`);
     return { id, username: target.username, tempPassword: temp };
+  }
+
+  async setDiscount(id: number, pct: number, actorId: number, ip?: string) {
+    const n = Math.round(Number(pct));
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      throw new BadRequestException('descuento: de 0 a 100');
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
+    });
+    if (!target) throw new NotFoundException('Usuario no existe');
+    if (!target.role.permissions.includes('sales.own')) {
+      throw new BadRequestException('Solo el rol de agencia lleva descuento');
+    }
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { discountPct: n },
+      select: publicSelect,
+    });
+    await this.audit(actorId, 'DISCOUNT_SET', ip, `usuario: ${target.username} -> ${n}%`);
+    return user;
   }
 
   async setActive(id: number, active: boolean, actorId: number, ip?: string) {
@@ -201,4 +241,4 @@ export class UsersService {
       throw e;
     }
   }
-}
+}

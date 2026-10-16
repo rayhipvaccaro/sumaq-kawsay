@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, ChevronDown, Clock, DollarSign, Menu, X } from 'lucide-react';
+import { Calendar, ChevronDown, Clock, DollarSign, Menu, User, X } from 'lucide-react';
+import { homeFor, isStaff } from '@/lib/permissions';
 import { useCMS } from '@/lib/cmsContext';
 import { useSitePrefs } from '@/lib/sitePrefs';
 import { DEFAULT_RATES, POPULAR_CURRENCIES, currencyName } from '@/data/currencies';
@@ -63,8 +64,19 @@ const OTHER_CURRENCIES = ALL_CURRENCIES.filter((c) => !POPULAR_CURRENCIES.includ
 
 export function SiteHeader() {
   const { lang, setLang, currency, setCurrency } = useSitePrefs();
-  const { openBookingWizard, openOrderTracker } = useCMS();
+  const { openBookingWizard, openOrderTracker, sessionUser } = useCMS();
   const isEs = lang === 'es';
+  // Cuenta: sin sesion -> Ingresar; turista/agencia -> Mis reservas; personal -> Panel.
+  const acct = sessionUser && !sessionUser.mustChangePassword ? sessionUser : null;
+  const acctStaff = Boolean(acct && (acct.isAdmin || isStaff(acct)));
+  const acctHref = acct ? (acctStaff ? homeFor(acct) : '/mis-reservas') : '/ingresar';
+  const acctLabel = acct
+    ? acctStaff
+      ? isEs ? 'Panel' : 'Panel'
+      : acct.role === 'Agencia'
+        ? isEs ? 'Mis ventas' : 'My sales'
+        : isEs ? 'Mis reservas' : 'My bookings'
+    : isEs ? 'Ingresar' : 'Sign in';
   const pathname = usePathname() ?? '/';
 
   const [scrolled, setScrolled] = useState(false);
@@ -265,6 +277,13 @@ export function SiteHeader() {
             </nav>
 
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <Link
+                href={acctHref}
+                className="hidden items-center gap-1.5 rounded-xl border border-stone-700 bg-[#221E1B] px-2.5 py-2 text-xs font-bold text-stone-200 hover:text-[#F6A935] md:flex"
+              >
+                <User className="h-3.5 w-3.5 text-[#F6A935]" aria-hidden="true" />
+                <span>{acctLabel}</span>
+              </Link>
               <button
                 type="button"
                 onClick={() => openOrderTracker()}
@@ -343,6 +362,13 @@ export function SiteHeader() {
               {isEs ? 'Contacto' : 'Contact'}
             </Link>
             <div className="grid grid-cols-2 gap-3 pt-4">
+              <Link
+                href={acctHref}
+                className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-stone-700 bg-stone-800 py-3 text-sm font-bold text-stone-100"
+              >
+                <User className="h-4 w-4 text-[#F6A935]" aria-hidden="true" />
+                {acctLabel}
+              </Link>
               <button
                 type="button"
                 onClick={() => {

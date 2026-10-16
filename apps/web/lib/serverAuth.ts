@@ -4,6 +4,10 @@ import { API_URL, SESSION_COOKIE } from './session';
 export interface SessionUser {
   id: number;
   username: string;
+  fullName?: string;
+  discountPct?: number;
+  docType?: string | null;
+  docNumber?: string | null;
   role: string;
   isAdmin: boolean;
   area: string | null;

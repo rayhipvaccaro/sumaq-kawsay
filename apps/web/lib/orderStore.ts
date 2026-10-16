@@ -47,6 +47,29 @@ export function nextOrderId(reservations: Reservation[]): string {
   return `SQ-2026-0${max + 1}`;
 }
 
+// Campos que pone el servidor al crear la orden (cuenta del turista, agencia, descuento).
+// La copia del navegador no los tiene: si pisara la orden, la reserva desaparecia de "Mis reservas".
+const SERVER_FIELDS = [
+  'customerUserId',
+  'customerDocType',
+  'agencyUserId',
+  'agencyName',
+  'agencyDiscountPct',
+  'listTotalPEN',
+  'listTotalUSD',
+  'passengers',
+  'accessToken',
+] as const;
+
+function keepServerFields(s: Reservation, c: Reservation): Reservation {
+  const out = { ...c } as unknown as Record<string, unknown>;
+  const src = s as unknown as Record<string, unknown>;
+  for (const k of SERVER_FIELDS) {
+    if (src[k] !== undefined) out[k] = src[k];
+  }
+  return out as unknown as Reservation;
+}
+
 /** Une lo que manda el panel con lo que hay en el servidor, sin perder ordenes ni pagos nuevos. */
 export function mergeReservations(server: Reservation[], client: Reservation[]): Reservation[] {
   const serverById = new Map(server.map((r) => [r.id, r]));
@@ -58,16 +81,16 @@ export function mergeReservations(server: Reservation[], client: Reservation[]):
     const sPay = s.payments?.length ?? 0;
     const cPay = c.payments?.length ?? 0;
     if (sPay > cPay) {
-      return {
+      return keepServerFields(s, {
         ...c,
         payments: s.payments,
         amountPaidPEN: s.amountPaidPEN,
         paymentStatus: s.paymentStatus,
         paymentMethod: s.paymentMethod,
         emailLogs: s.emailLogs.length > c.emailLogs.length ? s.emailLogs : c.emailLogs,
-      };
+      });
     }
-    return { ...c, accessToken: s.accessToken ?? c.accessToken };
+    return keepServerFields(s, c);
   });
   return [...serverOnly, ...merged];
 }

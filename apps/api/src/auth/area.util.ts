@@ -7,6 +7,10 @@ export interface TokenUser {
   isAdmin: boolean;
   areaId: number | null;
   area: string | null;
+  fullName?: string;
+  discountPct?: number;
+  docType?: string | null;
+  docNumber?: string | null;
   mustChange: boolean;
   permissions: string[];
 }

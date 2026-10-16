@@ -38,6 +38,15 @@ export class UsersController {
     return this.users.resetPassword(id, req.user.sub, req.ip);
   }
 
+  @Patch('users/:id/discount')
+  setDiscount(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { discountPct: number },
+    @Req() req: AuthedReq,
+  ) {
+    return this.users.setDiscount(id, body?.discountPct, req.user.sub, req.ip);
+  }
+
   @Patch('users/:id/active')
   setActive(
     @Param('id', ParseIntPipe) id: number,
@@ -70,4 +79,4 @@ export class UsersController {
   createRole(@Body() body: CreateRoleInput, @Req() req: AuthedReq) {
     return this.users.createRole(body, req.user.sub, req.ip);
   }
-}
+}

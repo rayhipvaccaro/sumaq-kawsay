@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import type { Reservation, ReservationItemSelection } from '@/data/businessData';
 import { mutateCms, nextOrderId } from '@/lib/orderStore';
+import { API_URL } from '@/lib/session';
+import { getSession } from '@/lib/serverAuth';
+import { docError, normDoc } from '@/lib/docs';
 
 // Crea la orden del turista (publico). El servidor pone id, token, estado y pago:
 // el cliente no puede mandarlos. PENDIENTE antes de cobrar de verdad: recalcular
@@ -76,6 +79,67 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Total invalido' }, { status: 400 });
   }
 
+  // Documento obligatorio: DNI (nacionales) o pasaporte (extranjeros)
+  const docType = str(b.customerDocType, 12).toUpperCase() as 'DNI' | 'PASAPORTE';
+  const docNumber = normDoc(str(b.customerDniOrPassport, 30));
+  const dErr = docError(docType, docNumber);
+  if (dErr) return NextResponse.json({ error: dErr }, { status: 400 });
+
+  // Agencia: el descuento lo pone el servidor, el cliente no puede mandarlo.
+  const user = await getSession(req);
+  const agency = user && !user.mustChangePassword && user.role === 'Agencia' ? user : null;
+  const tourist = user && !user.mustChangePassword && user.role === 'Turista' ? user : null;
+  const pct = agency ? Math.min(100, Math.max(0, Number(agency.discountPct ?? 0))) : 0;
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const listPEN = agency ? r2(num(b.listTotalPEN)) : totalPEN;
+  const listUSD = agency ? r2(num(b.listTotalUSD)) : totalUSD;
+  if (agency && !(listPEN > 0)) {
+    return NextResponse.json({ error: 'Total invalido' }, { status: 400 });
+  }
+  const finalPEN = agency ? r2(listPEN * (1 - pct / 100)) : totalPEN;
+  const finalUSD = agency ? r2(listUSD * (1 - pct / 100)) : totalUSD;
+  const passengers = (Array.isArray(b.passengers) ? b.passengers.slice(0, 40) : [])
+    .map((p) => {
+      const o = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>;
+      return { name: str(o.name, 120), doc: str(o.doc, 30) || undefined };
+    })
+    .filter((p) => p.name);
+
+  // Cuenta del turista: se crea sola con su correo (clave inicial = su documento).
+  // Si Nest falla, la orden igual se guarda.
+  let customerUserId: number | undefined;
+  let account: 'new' | 'linked' | 'conflict' | '' = '';
+  if (tourist) {
+    // Ya inicio sesion: la reserva va directo a su cuenta.
+    customerUserId = tourist.id;
+    account = 'linked';
+  } else if (!agency) {
+    try {
+      const r = await fetch(`${API_URL}/customers/ensure`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.INTERNAL_API_KEY ? { 'x-internal-key': process.env.INTERNAL_API_KEY } : {}),
+        },
+        body: JSON.stringify({ email: customerEmail, fullName: customerName, docType, docNumber }),
+        cache: 'no-store',
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        if (j.userId) {
+          customerUserId = j.userId as number;
+          account = j.created ? 'new' : 'linked';
+        } else {
+          account = 'conflict';
+        }
+      } else {
+        console.error('ORDERS: ensure cuenta fallo:', r.status, j?.message);
+      }
+    } catch (e) {
+      console.error('ORDERS: no se pudo crear la cuenta del turista:', e);
+    }
+  }
+
   const stay = b.stayItem ? cleanItem(b.stayItem) : null;
   const activities = list(b.activities);
   const meals = list(b.meals);
@@ -92,7 +156,19 @@ export async function POST(req: NextRequest) {
         customerName,
         customerEmail,
         customerPhone,
-        customerDniOrPassport: str(b.customerDniOrPassport, 30) || undefined,
+        customerDniOrPassport: docNumber,
+        customerDocType: docType,
+        customerUserId,
+        ...(agency
+          ? {
+              agencyUserId: agency.id,
+              agencyName: agency.fullName || agency.username,
+              agencyDiscountPct: pct,
+              listTotalPEN: listPEN,
+              listTotalUSD: listUSD,
+              passengers,
+            }
+          : {}),
         travelDate,
         endDate: str(b.endDate, 10) || undefined,
         guestsCount,
@@ -101,10 +177,10 @@ export async function POST(req: NextRequest) {
         activities,
         meals,
         extras,
-        totalPEN,
-        totalUSD,
+        totalPEN: finalPEN,
+        totalUSD: finalUSD,
         totalCostPEN: num(b.totalCostPEN),
-        grossMarginPEN: num(b.grossMarginPEN),
+        grossMarginPEN: agency ? r2(finalPEN - num(b.totalCostPEN)) : num(b.grossMarginPEN),
         status: 'cotizado',
         assignedAgent: 'Valeria Cruz (Ventas & Marketing)',
         paymentStatus: 'pendiente',
@@ -128,7 +204,7 @@ export async function POST(req: NextRequest) {
       data.reservations = [order, ...(data.reservations ?? [])];
       return id;
     });
-    return NextResponse.json({ id, accessToken });
+    return NextResponse.json({ id, accessToken, account });
   } catch (e) {
     console.error('ORDERS: no se pudo guardar:', e);
     return NextResponse.json({ error: 'No se pudo guardar la orden' }, { status: 500 });

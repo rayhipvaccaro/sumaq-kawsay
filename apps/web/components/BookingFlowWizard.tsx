@@ -26,6 +26,7 @@ import {
   Car,
 } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
+import { docError, normDoc } from '@/lib/docs';
 import { StockItem, ReservationItemSelection } from '@/data/businessData';
 
 interface BookingFlowWizardProps {
@@ -41,8 +42,12 @@ export function BookingFlowWizard({
   lang = 'es',
   currency = 'PEN',
 }: BookingFlowWizardProps) {
-  const { stockItems, createReservation, openOrderTracker, bookingPreset } = useCMS();
+  const { stockItems, createReservation, openOrderTracker, bookingPreset, sessionUser } = useCMS();
   const isEs = lang === 'es';
+  // Agencia con sesion: reserva para sus clientes y se le aplica su descuento fijo.
+  const isAgency = sessionUser?.role === 'Agencia' && !sessionUser?.mustChangePassword;
+  const tourist = sessionUser?.role === 'Turista' && !sessionUser?.mustChangePassword ? sessionUser : null;
+  const agencyPct = isAgency ? Math.min(100, Math.max(0, Number(sessionUser?.discountPct ?? 0))) : 0;
 
   // Step state (1: Hospedaje, 2: Actividades, 3: Alimentación, 4: Extras, 5: Resumen & Confirmación)
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -52,6 +57,20 @@ export function BookingFlowWizard({
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerDoc, setCustomerDoc] = useState('');
+  const [customerDocType, setCustomerDocType] = useState<'DNI' | 'PASAPORTE'>('DNI');
+  const [passengersText, setPassengersText] = useState('');
+
+  // Turista con sesion: sus datos se autocompletan y la reserva queda en su cuenta.
+  useEffect(() => {
+    if (!tourist) return;
+    setCustomerEmail((v) => v || tourist.username);
+    setCustomerName((v) => v || tourist.fullName || '');
+    if (tourist.docNumber) {
+      setCustomerDoc((v) => v || tourist.docNumber || '');
+      if (tourist.docType === 'DNI' || tourist.docType === 'PASAPORTE') setCustomerDocType(tourist.docType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourist?.id]);
   const [notes, setNotes] = useState('');
 
   // Trip Dates & Guests
@@ -242,9 +261,17 @@ export function BookingFlowWizard({
       }
     });
 
+    const listTotalPEN = totalPEN;
+    const listTotalUSD = totalUSD;
+    if (agencyPct > 0) {
+      totalPEN = Math.round(totalPEN * (1 - agencyPct / 100) * 100) / 100;
+      totalUSD = Math.round(totalUSD * (1 - agencyPct / 100) * 100) / 100;
+    }
     const grossMarginPEN = totalPEN - totalCostPEN;
 
     return {
+      listTotalPEN,
+      listTotalUSD,
       totalPEN,
       totalUSD,
       totalCostPEN,
@@ -259,6 +286,7 @@ export function BookingFlowWizard({
     selectedActivities,
     selectedMeals,
     selectedExtras,
+    agencyPct,
     nightsCount,
     guestsCount,
     stayStock,
@@ -369,6 +397,11 @@ export function BookingFlowWizard({
       alert(isEs ? 'Por favor completa tu nombre, correo y teléfono.' : 'Please enter name, email and phone.');
       return;
     }
+    const dErr = docError(customerDocType, customerDoc, isEs);
+    if (dErr) {
+      alert(dErr);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -378,7 +411,23 @@ export function BookingFlowWizard({
         customerName,
         customerEmail,
         customerPhone,
-        customerDniOrPassport: customerDoc,
+        customerDniOrPassport: normDoc(customerDoc),
+        customerDocType,
+        ...(isAgency
+          ? {
+              listTotalPEN: calculation.listTotalPEN,
+              listTotalUSD: calculation.listTotalUSD,
+              passengers: passengersText
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean)
+                .slice(0, 40)
+                .map((l) => {
+                  const [name, ...rest] = l.split(/[,;|]/);
+                  return { name: name.trim(), doc: rest.join(' ').trim() || undefined };
+                }),
+            }
+          : {}),
         travelDate,
         guestsCount,
         notes,
@@ -413,6 +462,21 @@ export function BookingFlowWizard({
       setTimeout(() => setCopiedCode(false), 2500);
     }
   };
+
+  // Ingreso de turistas/agencias: correo ya escrito y aviso segun la cuenta.
+  const loginHref = (() => {
+    if (!createdReservationId) return '/ingresar';
+    let a = '';
+    try {
+      a = localStorage.getItem(`sq_acct_${createdReservationId}`) ?? '';
+    } catch {
+      a = '';
+    }
+    return (
+      `/ingresar?email=${encodeURIComponent(customerEmail.trim().toLowerCase())}` +
+      `&reserva=${encodeURIComponent(createdReservationId)}${a === 'new' ? '&nueva=1' : ''}`
+    );
+  })();
 
   const composeWhatsAppLink = () => {
     if (!createdReservationId) return '#';
@@ -613,12 +677,75 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                 </div>
               </div>
 
+              {/* Cuenta del turista / agencia */}
+              {(() => {
+                let a = '';
+                try {
+                  a = localStorage.getItem(`sq_acct_${createdReservationId}`) ?? '';
+                } catch {
+                  a = '';
+                }
+                const box = 'text-left text-sm rounded-2xl border-2 p-4 space-y-2 ';
+                if (isAgency) {
+                  return (
+                    <div className={box + 'border-amber-300 bg-amber-50 text-amber-900'}>
+                      <p>{isEs ? 'Esta venta quedó registrada en tu cuenta de agencia.' : 'This sale was saved in your agency account.'}</p>
+                    </div>
+                  );
+                }
+                if (a === 'new') {
+                  return (
+                    <div className={box + 'border-emerald-300 bg-emerald-50 text-emerald-900'}>
+                      <p className="font-bold">{isEs ? 'Creamos tu cuenta' : 'We created your account'}</p>
+                      <p>
+                        {isEs
+                          ? `Entra con tu correo (${customerEmail}). Tu clave inicial es tu número de documento y te pediremos cambiarla. Ahí verás esta reserva y las próximas.`
+                          : `Sign in with your email (${customerEmail}). Your first password is your document number and you will be asked to change it. You will see this and future bookings there.`}
+                      </p>
+                    </div>
+                  );
+                }
+                if (a === 'linked') {
+                  return (
+                    <div className={box + 'border-emerald-300 bg-emerald-50 text-emerald-900'}>
+                      <p>
+                        {tourist
+                          ? isEs ? 'Esta reserva quedó en tu cuenta.' : 'This booking is now in your account.'
+                          : isEs ? 'Esta reserva se agregó a tu cuenta. Entra con tu correo para verla.' : 'This booking was added to your account. Sign in with your email to see it.'}
+                      </p>
+                    </div>
+                  );
+                }
+                if (a === 'conflict') {
+                  return (
+                    <div className={box + 'border-amber-300 bg-amber-50 text-amber-900'}>
+                      <p>
+                        {isEs
+                          ? 'Ya existe una cuenta con ese correo y otro documento, así que esta reserva no se enlazó a ella. Escríbenos y Ventas te ayuda.'
+                          : 'An account with that email and a different document already exists, so this booking was not linked. Contact us and Sales will help.'}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {/* Action Buttons */}
               <a
                 href={`/pago/${createdReservationId}?t=${(() => { try { return localStorage.getItem(`sq_pay_${createdReservationId}`) ?? ''; } catch { return ''; } })()}`}
                 className="block w-full py-4 px-6 rounded-xl bg-[#F6A935] hover:bg-[#D48B1E] text-[#181513] font-black text-base shadow-lg text-center border border-[#FDE8B5] transition-all"
               >
                 {isEs ? 'Pagar ahora (adelanto 50% o total)' : 'Pay now (50% deposit or full)'}
+              </a>
+              <a
+                href={isAgency || tourist ? '/mis-reservas' : loginHref}
+                className="block w-full py-4 px-6 rounded-xl bg-[#181513] hover:bg-stone-800 text-[#F6A935] font-black text-base shadow-lg text-center border border-[#F6A935]/40 transition-all"
+              >
+                {isAgency
+                  ? isEs ? 'Ir a mis ventas' : 'Go to my sales'
+                  : tourist
+                    ? isEs ? 'Ver mis reservas' : 'See my bookings'
+                    : isEs ? 'Iniciar sesión para ver mi reserva' : 'Sign in to see my booking'}
               </a>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
@@ -636,10 +763,10 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     onClose();
                     openOrderTracker(createdReservationId);
                   }}
-                  className="flex-1 py-3.5 px-6 rounded-xl bg-[#181513] hover:bg-stone-800 text-[#F6A935] font-bold text-sm shadow-md flex items-center justify-center gap-2 border border-[#F6A935]/40 transition-all"
+                  className="flex-1 py-3.5 px-6 rounded-xl bg-white hover:bg-stone-100 text-stone-800 font-bold text-sm shadow-md flex items-center justify-center gap-2 border border-stone-300 transition-all"
                 >
                   <Clock className="w-5 h-5" />
-                  <span>{isEs ? 'Ver Estado en Tiempo Real' : 'Track in Real-Time'}</span>
+                  <span>{isEs ? 'Seguir mi orden sin cuenta' : 'Track without account'}</span>
                 </button>
               </div>
             </div>
@@ -1258,6 +1385,12 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                           <span>{isEs ? 'Huéspedes / Viajeros:' : 'Guests:'}</span>
                           <span className="font-bold">{guestsCount}</span>
                         </div>
+                        {agencyPct > 0 && (
+                          <div className="flex justify-between text-xs text-amber-800 pt-2 border-t border-stone-200">
+                            <span>{isEs ? `Precio lista S/ ${calculation.listTotalPEN} · Dscto. agencia ${agencyPct}%` : `List price S/ ${calculation.listTotalPEN} · Agency discount ${agencyPct}%`}</span>
+                            <span className="font-bold">- S/ {Math.round((calculation.listTotalPEN - calculation.totalPEN) * 100) / 100}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-base sm:text-lg font-black text-[#442A19] pt-2 border-t border-stone-200">
                           <span>TOTAL ESTIMADO:</span>
                           <span className="font-mono">
@@ -1275,6 +1408,13 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                       <h4 className="font-heading font-extrabold text-stone-900 text-base border-b pb-2">
                         {isEs ? 'Datos del Titular de Reserva' : 'Primary Traveler Information'}
                       </h4>
+                      {isAgency && (
+                        <div className="rounded-xl bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
+                          {isEs
+                            ? `Reservando como agencia ${sessionUser?.fullName || sessionUser?.username}. Registra los datos de tu cliente titular. Descuento aplicado: ${agencyPct}%.`
+                            : `Booking as agency ${sessionUser?.fullName || sessionUser?.username}. Enter your client's details. Discount applied: ${agencyPct}%.`}
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
@@ -1321,15 +1461,33 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
 
                         <div>
                           <label className="text-xs font-bold text-stone-700 block mb-1">
-                            {isEs ? 'DNI o Pasaporte' : 'ID or Passport'}
+                            {isEs ? 'Documento * (DNI nacionales · Pasaporte extranjeros)' : 'Document * (DNI for Peruvians · Passport for foreigners)'}
                           </label>
-                          <input
-                            type="text"
-                            value={customerDoc}
-                            onChange={(e) => setCustomerDoc(e.target.value)}
-                            placeholder="45892100"
-                            className="w-full px-3 py-2 border rounded-xl text-sm bg-stone-50 border-stone-300 focus:ring-2 focus:ring-[#F6A935]"
-                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={customerDocType}
+                              onChange={(e) => setCustomerDocType(e.target.value as 'DNI' | 'PASAPORTE')}
+                              className="px-2 py-2 border rounded-xl text-sm bg-stone-50 border-stone-300"
+                            >
+                              <option value="DNI">DNI</option>
+                              <option value="PASAPORTE">{isEs ? 'Pasaporte' : 'Passport'}</option>
+                            </select>
+                            <input
+                              type="text"
+                              required
+                              value={customerDoc}
+                              onChange={(e) => setCustomerDoc(e.target.value)}
+                              placeholder={customerDocType === 'DNI' ? '45892100' : 'AB123456'}
+                              className="w-full px-3 py-2 border rounded-xl text-sm bg-stone-50 border-stone-300 focus:ring-2 focus:ring-[#F6A935]"
+                            />
+                          </div>
+                          {!isAgency && (
+                            <p className="text-[11px] text-stone-500 mt-1">
+                              {isEs
+                                ? 'Con tu correo y este número podrás entrar a tu cuenta y ver tus reservas.'
+                                : 'With your email and this number you can sign in and see your bookings.'}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -1343,6 +1501,21 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                             <option>Interbank / Transferencia del Exterior</option>
                           </select>
                         </div>
+
+                        {isAgency && (
+                          <div className="sm:col-span-2">
+                            <label className="text-xs font-bold text-stone-700 block mb-1">
+                              {isEs ? 'Otros pasajeros (uno por línea: nombre, documento)' : 'Other travelers (one per line: name, document)'}
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={passengersText}
+                              onChange={(e) => setPassengersText(e.target.value)}
+                              placeholder={'María López, 45892100\nJohn Smith, AB123456'}
+                              className="w-full px-3 py-2 border rounded-xl text-sm bg-stone-50 border-stone-300"
+                            />
+                          </div>
+                        )}
 
                         <div className="sm:col-span-2">
                           <label className="text-xs font-bold text-stone-700 block mb-1">

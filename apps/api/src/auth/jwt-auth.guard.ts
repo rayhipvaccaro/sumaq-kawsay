@@ -62,6 +62,10 @@ export class JwtAuthGuard implements CanActivate {
       isAdmin: user.role.isAdmin,
       areaId: user.areaId,
       area: user.area?.name ?? null,
+      fullName: user.fullName,
+      discountPct: user.discountPct,
+      docType: user.docType,
+      docNumber: user.docNumber,
       mustChange: user.mustChangePassword,
       permissions: user.role.isAdmin ? ALL_PERMISSIONS : user.role.permissions,
     };

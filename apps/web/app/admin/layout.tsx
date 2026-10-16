@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Package, FileText, MessageSquareQuote, Inbox, CalendarCheck,
-  Wallet, Receipt, Boxes, MapPin, Users, ShieldCheck, Globe, LogOut, Menu, X,
+  Wallet, Receipt, Boxes, MapPin, Users, UserCheck, ShieldCheck, Globe, LogOut, Menu, X,
 } from 'lucide-react';
 import { useCMS } from '@/lib/cmsContext';
 
@@ -32,6 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Ventas',
       items: [
         { href: '/admin/reservas', label: 'Reservas y cotizaciones', icon: <CalendarCheck className={ic} />, show: can('orders.view') || can('payments.manage') },
+        { href: '/admin/clientes', label: 'Clientes y agencias', icon: <UserCheck className={ic} />, show: can('customers.reset') },
         { href: '/admin/cms/contacts', label: 'Contactos y consultas', icon: <Inbox className={ic} />, show: can('leads.view') },
       ],
     },

@@ -9,7 +9,7 @@ interface Area { id: number; name: string }
 interface UserRow {
   id: number; username: string; fullName: string; active: boolean;
   area: { id: number; name: string } | null;
-  role: Role; lockedUntil: string | null;
+  role: Role; lockedUntil: string | null; discountPct?: number;
 }
 
 const INPUT = 'px-3 py-2 rounded-lg border border-stone-400 bg-white text-stone-900 text-sm placeholder-stone-500 focus:outline-none focus:border-[#B7791F] focus:ring-2 focus:ring-[#F6A935]/40';
@@ -42,6 +42,7 @@ export default function UsuariosPage() {
   const [fullName, setFullName] = useState('');
   const [roleId, setRoleId] = useState<number>(0);
   const [areaId, setAreaId] = useState<number>(0);
+  const [discount, setDiscount] = useState('');
   const [newArea, setNewArea] = useState('');
   const [newRole, setNewRole] = useState('');
 
@@ -63,6 +64,7 @@ export default function UsuariosPage() {
 
   const selRole = roles.find((r) => r.id === roleId);
   const needsArea = selRole?.permissions.includes('area.manage');
+  const isAgency = selRole?.permissions.includes('sales.own');
 
   return (
     <div>
@@ -80,7 +82,7 @@ export default function UsuariosPage() {
         <section className="space-y-3 bg-white border border-stone-300 rounded-xl p-4">
           <h2 className="font-bold text-lg text-stone-900">Crear usuario</h2>
           <div className="flex flex-wrap gap-2">
-            <input className={INPUT} placeholder="usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input className={INPUT} placeholder={isAgency ? 'correo de la agencia' : 'usuario'} value={username} onChange={(e) => setUsername(e.target.value)} />
             <input className={INPUT} placeholder="Nombre completo" value={fullName} onChange={(e) => setFullName(e.target.value)} />
             <select className={INPUT} value={roleId} onChange={(e) => setRoleId(Number(e.target.value))}>
               {roles.filter((r) => !r.isAdmin).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -91,12 +93,15 @@ export default function UsuariosPage() {
                 {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             )}
+            {isAgency && (
+              <input className={`${INPUT} w-36`} inputMode="numeric" placeholder="Descuento % (ej. 10)" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+            )}
             <button
               className={BTN}
               onClick={() => run(async () => {
-                const r = await api('users', 'POST', { username, fullName, roleId, ...(needsArea && areaId ? { areaId } : {}) });
+                const r = await api('users', 'POST', { username, fullName, roleId, ...(needsArea && areaId ? { areaId } : {}), ...(isAgency ? { discountPct: Number(discount || 0) } : {}) });
                 setTemp({ username: r.user.username, pass: r.tempPassword });
-                setUsername(''); setFullName('');
+                setUsername(''); setFullName(''); setDiscount('');
               })}
             >Crear</button>
           </div>
@@ -111,7 +116,7 @@ export default function UsuariosPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-stone-600">
-                <tr><th className="p-2">Usuario</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Estado</th><th></th></tr>
+                <tr><th className="p-2">Usuario</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Dscto.</th><th>Estado</th><th></th></tr>
               </thead>
               <tbody>
                 {users.map((u) => (
@@ -120,6 +125,7 @@ export default function UsuariosPage() {
                     <td>{u.fullName}</td>
                     <td>{u.role.name}</td>
                     <td>{u.area?.name ?? '—'}</td>
+                    <td>{u.role.permissions.includes('sales.own') ? `${u.discountPct ?? 0}%` : '—'}</td>
                     <td>{u.active ? 'Activo' : 'Inactivo'}</td>
                     <td className="space-x-1 whitespace-nowrap">
                       <button className={BTN2} onClick={() => run(async () => {
