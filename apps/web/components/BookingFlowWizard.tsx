@@ -27,6 +27,11 @@ import {
 import { useCMS } from '@/lib/cmsContext';
 import { StockItem, ReservationItemSelection } from '@/data/businessData';
 
+const HOURS = Array.from({ length: 21 }, (_, i) => {
+  const m = 7 * 60 + i * 30;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+});
+
 interface BookingFlowWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -61,28 +66,20 @@ export function BookingFlowWizard({
   });
   const [nightsCount, setNightsCount] = useState<number>(2);
   const [guestsCount, setGuestsCount] = useState<number>(2);
+  const [arrivalTime, setArrivalTime] = useState('09:00');
 
   // Selections
   // Step 1: Hospedaje (1 item selected or null for only day activities)
-  const [selectedStayId, setSelectedStayId] = useState<string>('hosp-bungalow');
+  const [selectedStayId, setSelectedStayId] = useState<string>('');
 
   // Step 2: Actividades (array of selected activity IDs with guest counts)
-  const [selectedActivities, setSelectedActivities] = useState<Record<string, number>>({
-    'act-hanan-pacha': 2,
-    'act-willka-unu': 2,
-  });
+  const [selectedActivities, setSelectedActivities] = useState<Record<string, number>>({});
 
   // Step 3: Alimentación (array of meal IDs with quantities)
-  const [selectedMeals, setSelectedMeals] = useState<Record<string, number>>({
-    'food-pachamanca': 2,
-    'food-novoandino': 2,
-  });
+  const [selectedMeals, setSelectedMeals] = useState<Record<string, number>>({});
 
   // Step 4: Extras & Traslados
-  const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({
-    'extra-transporte-cusco': 1,
-    'extra-kit-hierbas': 2,
-  });
+  const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
 
   // Post-submit state
   const [createdReservationId, setCreatedReservationId] = useState<string | null>(null);
@@ -314,6 +311,35 @@ export function BookingFlowWizard({
 
   if (!isOpen) return null;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const whenBar = (
+    <div className="flex flex-wrap items-end gap-4 p-3 rounded-xl border border-stone-300 bg-stone-50">
+      <label className="text-sm font-semibold text-stone-800">
+        {isEs ? 'Fecha' : 'Date'}
+        <input
+          type="date"
+          min={todayStr}
+          value={travelDate}
+          onChange={(e) => e.target.value && setTravelDate(e.target.value)}
+          className="block mt-1 px-3 py-2 rounded-lg border border-stone-400 bg-white text-sm"
+        />
+      </label>
+      <label className="text-sm font-semibold text-stone-800">
+        {isEs ? 'Hora de llegada' : 'Arrival time'}
+        <select
+          value={arrivalTime}
+          onChange={(e) => setArrivalTime(e.target.value)}
+          className="block mt-1 px-3 py-2 rounded-lg border border-stone-400 bg-white text-sm"
+        >
+          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+        </select>
+      </label>
+      <p className="text-xs text-stone-600">
+        {isEs ? 'El cupo es por día. La hora nos ayuda a esperarte.' : 'Capacity is per day. The time helps us prepare.'}
+      </p>
+    </div>
+  );
+
   // Toggle helpers
   const toggleActivity = (id: string) => {
     setSelectedActivities((prev) => {
@@ -375,7 +401,7 @@ export function BookingFlowWizard({
 
     setIsSubmitting(true);
     try {
-      const nest = await fetch('/api/booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: travelDate, customerName, customerContact: `${customerEmail} | ${customerPhone}`, items: calculation.actSelections.map((a) => ({ id: a.itemId, name: a.name, quantity: a.quantity })) }) }).then((r) => r.json()).catch(() => ({ ok: false, message: isEs ? 'Sin conexion con el servidor de reservas.' : 'Cannot reach the booking server.' }));
+      const nest = await fetch('/api/booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: travelDate, arrivalTime, customerDoc, customerName, customerContact: `${customerEmail} | ${customerPhone}`, items: calculation.actSelections.map((a) => ({ id: a.itemId, name: a.name, quantity: a.quantity })) }) }).then((r) => r.json()).catch(() => ({ ok: false, message: isEs ? 'Sin conexion con el servidor de reservas.' : 'Cannot reach the booking server.' }));
       if (!nest.ok) { alert(nest.message); return; }
       const reservationId = await createReservation({
         customerName,
@@ -868,6 +894,7 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     </p>
                   </div>
 
+                  {whenBar}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {activitiesStock.map((act) => {
                       const count = selectedActivities[act.id] || 0;
@@ -1075,6 +1102,7 @@ Quedo atento/a para la confirmación de disponibilidad con el área de Ventas.`
                     </p>
                   </div>
 
+                  {whenBar}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {extrasStock.map((extra) => {
                       const count = selectedExtras[extra.id] || 0;

@@ -58,7 +58,7 @@ export interface BRes {
 }
 export interface BRoute { id: number; name: string; minMin: number; maxMin: number }
 export interface BPending {
-  bookingId: number; customerName: string; customerContact: string; customerDoc: string | null; quantity: number; pending: number;
+  bookingId: number; customerName: string; customerContact: string; customerDoc: string | null; arrivalTime: string | null; quantity: number; pending: number;
 }
 export interface BRun {
   id: number; bookingId: number; customerName: string; customerDoc: string | null;
@@ -69,6 +69,7 @@ export interface BRun {
 export interface Board {
   date: string; me: number; isAdmin: boolean; capacity: number; slotCapacity: number; booked: number;
   resources: BRes[]; routes: BRoute[]; pending: BPending[]; runs: BRun[];
+  upcoming: { bookingId: number; date: string; customerName: string; customerContact: string; customerDoc: string | null; quantity: number; arrivalTime: string | null }[];
   names: Record<number, string>; staff: { id: number; fullName: string }[];
 }
 export const KIND_LABEL: Record<string, string> = { main: 'Principal', guia: 'Guía', espacio: 'Espacio' };

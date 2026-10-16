@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { api, Board, BPending, BRes, BRun, BTN, BTN2, CARD, Field, Help, INPUT, Run, timeLabel } from './ui';
+import { api, Board, dayKey, BPending, BRes, BRun, BTN, BTN2, CARD, Field, Help, INPUT, Run, timeLabel } from './ui';
 
 function beep() {
   try {
@@ -68,7 +68,7 @@ function ResCard({ r, date, board, run }: { r: BRes; date: string; board: Board;
   );
 }
 
-function PendingRow({ p, board, run }: { p: BPending; board: Board; run: Run }) {
+function PendingRow({ p, board, run, locked }: { p: BPending; board: Board; run: Run; locked: boolean }) {
   const [routeId, setRouteId] = useState('');
   const [resId, setResId] = useState('');
   const [min, setMin] = useState('');
@@ -80,6 +80,7 @@ function PendingRow({ p, board, run }: { p: BPending; board: Board; run: Run }) 
         <div>
           <b className="text-stone-900">{p.customerName}</b>
           <span className="text-sm text-stone-600"> · {p.customerDoc ? `DNI/Pas. ${p.customerDoc}` : p.customerContact}</span>
+          {p.arrivalTime && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">Llega {p.arrivalTime}</span>}
         </div>
         <span className="text-sm text-stone-800">Faltan <b>{p.pending}</b> de {p.quantity}</span>
       </div>
@@ -101,7 +102,7 @@ function PendingRow({ p, board, run }: { p: BPending; board: Board; run: Run }) 
         </Field>
         <button
           className={BTN}
-          disabled={!routeId || !resId}
+          disabled={locked || !routeId || !resId}
           onClick={() => run(async () => {
             await api('runs/start', 'POST', {
               bookingId: p.bookingId, routeId: Number(routeId), resourceId: Number(resId), ...(min ? { minutes: Number(min) } : {}),
@@ -112,6 +113,7 @@ function PendingRow({ p, board, run }: { p: BPending; board: Board; run: Run }) 
         >Iniciar</button>
         <button
           className={BTN2}
+          disabled={locked}
           onClick={() => run(async () => {
             const reason = window.prompt('Motivo (no llegó, canceló, otro)');
             if (!reason) return;
@@ -120,6 +122,7 @@ function PendingRow({ p, board, run }: { p: BPending; board: Board; run: Run }) 
           })}
         >No lo hizo</button>
       </div>
+      {locked && <p className="text-xs text-amber-800">Aún no es su día. Puedes elegir ruta y recurso, pero no iniciar.</p>}
     </div>
   );
 }
@@ -241,8 +244,26 @@ export function HoyTab({ label, board, date, setDate, actId, run }: {
         <Help>Elige ruta y recurso, y pulsa Iniciar. Si el turista no llegó, pulsa No lo hizo y escribe el motivo.</Help>
         {board.routes.length === 0 && <p className="text-sm text-amber-800">Falta crear las rutas (pestaña Rutas).</p>}
         <div className="space-y-2">
-          {board.pending.map((p) => <PendingRow key={p.bookingId} p={p} board={board} run={run} />)}
+          {board.pending.map((p) => <PendingRow key={p.bookingId} p={p} board={board} run={run} locked={date !== dayKey(new Date())} />)}
           {board.pending.length === 0 && <p className="text-sm text-stone-600">No hay turistas pendientes este día.</p>}
+        </div>
+      </div>
+
+      <div className={CARD}>
+        <h3 className="font-bold text-stone-900">Próximas reservas ({board.upcoming.length})</h3>
+        <Help>Reservas de los próximos 14 días. Pulsa Ver día para preparar su recorrido.</Help>
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+          {board.upcoming.map((u) => (
+            <div key={u.bookingId} className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg border border-stone-300 bg-white text-sm">
+              <span>
+                <b>{u.customerName}</b> · {u.quantity} pers. · {u.date}
+                {u.arrivalTime ? ` · llega ${u.arrivalTime}` : ''}
+                {u.customerDoc ? ` · ${u.customerDoc}` : ''}
+              </span>
+              <button className={BTN2} onClick={() => setDate(u.date)}>Ver día</button>
+            </div>
+          ))}
+          {board.upcoming.length === 0 && <p className="text-sm text-stone-600">No hay reservas próximas.</p>}
         </div>
       </div>
 

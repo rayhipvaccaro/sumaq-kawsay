@@ -16,6 +16,8 @@ export interface ReserveInput {
 export interface ReserveBatchInput {
   customerName: string;
   customerContact: string;
+  customerDoc?: string;
+  arrivalTime?: string;
   items: { slotId: number; quantity: number }[];
 }
 
@@ -25,6 +27,8 @@ export interface BookingRow {
   quantity: number;
   customerName: string;
   customerContact: string;
+  customerDoc: string | null;
+  arrivalTime: string | null;
   status: string;
   createdAt: Date;
 }
@@ -82,6 +86,11 @@ export class BookingsService {
     if (!customerName || !customerContact) {
       throw new BadRequestException('nombre y contacto son obligatorios');
     }
+    const customerDoc = input.customerDoc?.trim().slice(0, 20) || null;
+    const arrivalTime = input.arrivalTime?.trim() || null;
+    if (arrivalTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(arrivalTime)) {
+      throw new BadRequestException('hora invalida');
+    }
     if (
       !Array.isArray(input.items) ||
       input.items.length === 0 ||
@@ -127,8 +136,8 @@ export class BookingsService {
             );
           }
           const rows = await tx.$queryRaw<BookingRow[]>`
-            INSERT INTO "Booking" ("slotId", "quantity", "customerName", "customerContact")
-            VALUES (${slotId}::int, ${quantity}::int, ${customerName}::text, ${customerContact}::text)
+            INSERT INTO "Booking" ("slotId", "quantity", "customerName", "customerContact", "customerDoc", "arrivalTime")
+            VALUES (${slotId}::int, ${quantity}::int, ${customerName}::text, ${customerContact}::text, ${customerDoc}::text, ${arrivalTime}::text)
             RETURNING *
           `;
           out.push(rows[0]);

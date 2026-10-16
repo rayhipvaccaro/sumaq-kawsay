@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
   const date = String(body.date ?? '');
   const customerName = String(body.customerName ?? '').trim();
   const customerContact = String(body.customerContact ?? '').trim();
+  const customerDoc = String(body.customerDoc ?? '').trim();
+  const arrivalTime = String(body.arrivalTime ?? '').trim();
   const items: Item[] = Array.isArray(body.items) ? (body.items as Item[]) : [];
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !customerName || !customerContact) {
@@ -80,6 +82,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         customerName,
         customerContact,
+        customerDoc: customerDoc || undefined,
+        arrivalTime: arrivalTime || undefined,
         items: plan.map((p) => ({ slotId: p.slotId, quantity: p.quantity })),
       }),
       cache: 'no-store',

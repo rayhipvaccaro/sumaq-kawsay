@@ -79,13 +79,13 @@ export class OpsService {
     const ds = dayStart(date);
     const de = dayEnd(date);
 
-    const [resAll, days, routes, bookings, runsAll, slots, staff] = await Promise.all([
+    const [resAll, days, routes, bookings, runsAll, slots, staff, later] = await Promise.all([
       this.prisma.resource.findMany({ where: { activityId }, orderBy: { id: 'asc' } }),
       this.prisma.resourceDay.findMany({ where: { date, resource: { activityId } } }),
       this.prisma.route.findMany({ where: { activityId, active: true }, orderBy: { id: 'asc' } }),
       this.prisma.booking.findMany({
         where: { status: { not: 'CANCELLED' }, slot: { activityId, startsAt: { gte: ds, lt: de } } },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ arrivalTime: 'asc' }, { createdAt: 'asc' }],
         include: { runs: { orderBy: { id: 'asc' } } },
       }),
       this.prisma.serviceRun.findMany({
@@ -97,6 +97,14 @@ export class OpsService {
         where: { areaId: act.areaId, active: true },
         select: { id: true, fullName: true },
         orderBy: { fullName: 'asc' },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          slot: { activityId, startsAt: { gte: de, lt: new Date(de.getTime() + 14 * 86_400_000) } },
+        },
+        orderBy: { slot: { startsAt: 'asc' } },
+        include: { runs: true, slot: { select: { startsAt: true } } },
       }),
     ]);
 
@@ -164,10 +172,17 @@ export class OpsService {
       pending: bookings
         .map((b) => ({
           bookingId: b.id, customerName: b.customerName, customerContact: b.customerContact,
-          customerDoc: b.customerDoc, quantity: b.quantity, pending: b.quantity - b.runs.length,
+          customerDoc: b.customerDoc, arrivalTime: b.arrivalTime, quantity: b.quantity, pending: b.quantity - b.runs.length,
         }))
         .filter((p) => p.pending > 0),
       runs,
+      upcoming: later
+        .filter((b) => b.runs.length < b.quantity)
+        .map((b) => ({
+          bookingId: b.id, date: dayKey(b.slot.startsAt), customerName: b.customerName,
+          customerContact: b.customerContact, customerDoc: b.customerDoc,
+          quantity: b.quantity, arrivalTime: b.arrivalTime,
+        })),
       names: Object.fromEntries(users.map((u) => [u.id, u.fullName])),
       staff,
     };
@@ -340,6 +355,9 @@ export class OpsService {
     if (!b) throw new NotFoundException('Reserva no existe');
     assertAreaAccess(user, b.slot.activity.areaId);
     if (b.status === 'CANCELLED') throw new ConflictException('Reserva cancelada');
+    if (dayKey(b.slot.startsAt) > dayKey(new Date())) {
+      throw new ConflictException('Aun no es el dia de esta reserva');
+    }
     if (b.runs.length >= b.quantity) throw new ConflictException('Ya atendieron a todos de esta reserva');
     return b;
   }

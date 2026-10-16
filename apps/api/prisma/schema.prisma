@@ -75,6 +75,7 @@ model Booking {
   customerName    String
   customerContact String
   customerDoc     String?
+  arrivalTime     String?
   runs            ServiceRun[]
   status          BookingStatus @default(CONFIRMED)
   createdAt       DateTime      @default(now())
